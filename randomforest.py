@@ -181,6 +181,15 @@ def generate_synthetic_claims(num_claims=1000):
     # Sort by date
     df = df.sort_values("date_submitted")
 
+    # Reorder columns
+    column_order = [
+        "claim_id", "date_submitted", "diagnosis_code", "procedure_code", 
+        "claim_amount", "expected_los", "actual_los", "los_difference",
+        "provider_id", "provider_specialty", "needs_rework", "payment_difference",
+        "days_since_provider_last_claim", "provider_claim_count"
+    ]
+    df = df[column_order]
+
     return df
 
 
@@ -334,6 +343,15 @@ c.print(classification_report(y_test, predictions, zero_division=0))
 
 c.print("\nTop 10 Priority Claims:")
 c.print(scored_claims_sorted[["claim_id", "claim_amount", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
+
+# Reorder columns before saving
+column_order = [
+    "claim_id", "date_submitted", "diagnosis_code", "procedure_code", 
+    "claim_amount", "expected_los", "actual_los", "los_difference",
+    "provider_id", "provider_specialty", "needs_rework", "payment_difference",
+    "days_since_provider_last_claim", "provider_claim_count"
+]
+scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
 
 # Save scored claims to CSV
 scored_claims_sorted.to_csv("data/scored_medical_claims.csv", index=False)
