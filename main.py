@@ -46,7 +46,7 @@ else:
                 "PatientAge": np.random.randint(18, 100, n_samples),
                 "PatientGender": np.random.choice(["Male", "Female"], n_samples),
                 "DaysToProcess": np.random.randint(1, 30, n_samples),
-                "ClaimAmount": np.random.uniform(100, 10000, n_samples),
+                "ClaimAmount": np.random.uniform(100, n_samples),
             }
         )
     else:
@@ -71,7 +71,7 @@ else:
             if row["PatientGender"] == "Male":
                 delta -= np.random.uniform(50, 200)
             # Introduce randomness
-            delta += np.random.normal(0, 50)
+            # delta += np.random.normal(0, 50)
             return max(delta, 0)  # Delta should not be negative
         else:
 
