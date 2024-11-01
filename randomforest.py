@@ -332,6 +332,37 @@ def display_stats_for_df(claims_df):
     c.print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
 
 
+def score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score):
+    scored_claims = claims_df.copy()
+    scored_claims["rework_probability"] = rework_prob
+    scored_claims["impact_score"] = impact_score
+    scored_claims["priority_score"] = priority_score
+
+    # Sort by priority score
+    scored_claims_sorted = scored_claims.sort_values("priority_score", ascending=False)
+
+    # Reorder columns before saving
+    column_order = [
+        "claim_id",
+        "date_submitted",
+        "diagnosis_code",
+        "procedure_code",
+        "claim_charges",
+        "avg_los",
+        "actual_los",
+        "los_difference",
+        "provider_id",
+        "provider_specialty",
+        "needs_rework",
+        "payment_difference",
+    ]
+    scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
+
+    # Save scored claims to CSV
+    scored_claims_sorted.to_csv(f"data/{df_name_prefix}_scored_medical_claims.csv", index=False)
+    return scored_claims_sorted
+
+
 os.makedirs("data", exist_ok=True)
 os.makedirs("plots", exist_ok=True)
 
@@ -355,46 +386,20 @@ model, scaler, feature_importance, X_test, y_test, y_pred_proba = train_and_eval
 rework_prob, impact_score, priority_score = calculate_priority_scores(prepared_data, model, scaler, features)
 
 # Add scores to the original dataframe
-scored_claims = claims_df.copy()
-scored_claims["rework_probability"] = rework_prob
-scored_claims["impact_score"] = impact_score
-scored_claims["priority_score"] = priority_score
+scored_claims_sorted = score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score)
 
-# Sort by priority score
-scored_claims_sorted = scored_claims.sort_values("priority_score", ascending=False)
+# Print prediction distributions
+predictions = (y_pred_proba > 0.5).astype(int)
+# c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
+# c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
 
+c.print("\nModel Performance:")
+c.print(classification_report(y_test, predictions, zero_division=0))
 
-# Reorder columns before saving
-column_order = [
-    "claim_id",
-    "date_submitted",
-    "diagnosis_code",
-    "procedure_code",
-    "claim_charges",
-    "avg_los",
-    "actual_los",
-    "los_difference",
-    "provider_id",
-    "provider_specialty",
-    "needs_rework",
-    "payment_difference",
-]
-scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
-
-# Save scored claims to CSV
-scored_claims_sorted.to_csv(f"data/{df_name_prefix}scored_medical_claims.csv", index=False)
 
 # Print summary statistics and top priority claims
 c.print("\nFeature Importance:")
 c.print(feature_importance)
-
-# Print prediction distributions
-predictions = (y_pred_proba > 0.5).astype(int)
-c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
-c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
-
-c.print("\nModel Performance:")
-c.print(classification_report(y_test, predictions, zero_division=0))
 
 c.print("\nTop 10 Priority Claims:")
 c.print(scored_claims_sorted[["claim_id", "claim_charges", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
