@@ -92,17 +92,24 @@ def score_claims(model, scaler, new_claims, features):
     return scored_claims.sort_values("priority_score", ascending=False)
 
 
-def generate_synthetic_claims(num_claims=1000):
+def generate_synthetic_claims(
+    num_claims=1000,
+    seed=42,
+    num_of_providers=1,
+    num_of_diagnosis_codes=1,
+    num_of_procedure_codes=1,
+    specialties=["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"],
+):
     """
     Generate synthetic medical claims data with realistic patterns.
     """
-    np.random.seed(42)
+    np.random.seed(seed)
 
     # Create lists for categorical variables
-    provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, 51)]  # 50 providers
-    diagnosis_codes = [f"ICD{str(i).zfill(3)}" for i in range(1, 31)]  # 30 diagnosis codes
-    procedure_codes = [f"CPT{str(i).zfill(4)}" for i in range(1, 41)]  # 40 procedure codes
-    specialties = ["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"]
+    provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, num_of_providers + 1)]  # 50 providers
+    diagnosis_codes = [f"ICD{str(i).zfill(3)}" for i in range(1, num_of_diagnosis_codes + 1)]  # 30 diagnosis codes
+    procedure_codes = [f"CPT{str(i).zfill(4)}" for i in range(1, num_of_procedure_codes + 1)]  # 40 procedure codes
+    specialties = ["Internal Med"]
 
     # Generate procedure-specific average LOS
     procedure_los = {}
@@ -183,10 +190,20 @@ def generate_synthetic_claims(num_claims=1000):
 
     # Reorder columns
     column_order = [
-        "claim_id", "date_submitted", "diagnosis_code", "procedure_code", 
-        "claim_amount", "expected_los", "actual_los", "los_difference",
-        "provider_id", "provider_specialty", "needs_rework", "payment_difference",
-        "days_since_provider_last_claim", "provider_claim_count"
+        "claim_id",
+        "date_submitted",
+        "diagnosis_code",
+        "procedure_code",
+        "claim_amount",
+        "expected_los",
+        "actual_los",
+        "los_difference",
+        "provider_id",
+        "provider_specialty",
+        "needs_rework",
+        "payment_difference",
+        "days_since_provider_last_claim",
+        "provider_claim_count",
     ]
     df = df[column_order]
 
@@ -346,10 +363,20 @@ c.print(scored_claims_sorted[["claim_id", "claim_amount", "rework_probability", 
 
 # Reorder columns before saving
 column_order = [
-    "claim_id", "date_submitted", "diagnosis_code", "procedure_code", 
-    "claim_amount", "expected_los", "actual_los", "los_difference",
-    "provider_id", "provider_specialty", "needs_rework", "payment_difference",
-    "days_since_provider_last_claim", "provider_claim_count"
+    "claim_id",
+    "date_submitted",
+    "diagnosis_code",
+    "procedure_code",
+    "claim_amount",
+    "expected_los",
+    "actual_los",
+    "los_difference",
+    "provider_id",
+    "provider_specialty",
+    "needs_rework",
+    "payment_difference",
+    "days_since_provider_last_claim",
+    "provider_claim_count",
 ]
 scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
 
