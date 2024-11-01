@@ -93,7 +93,7 @@ def score_claims(model, scaler, new_claims, features):
 
 
 def generate_synthetic_claims(
-    num_claims=1000,
+    num_claims=100,
     seed=42,
     num_of_providers=1,
     num_of_diagnosis_codes=1,
@@ -134,14 +134,17 @@ def generate_synthetic_claims(
             procedure_charges[code] = round(np.random.uniform(1000, 2500), 2)
 
     # Generate base data
+    # Generate procedure codes first
+    procedure_code_list = np.random.choice(procedure_codes, num_claims)
+
     data = {
         "claim_id": [f"CLM{str(i).zfill(6)}" for i in range(1, num_claims + 1)],
         "date_submitted": [(datetime(2024, 1, 1) + timedelta(days=np.random.randint(0, 365))).strftime("%Y-%m-%d") for _ in range(num_claims)],
         "provider_id": np.random.choice(provider_ids, num_claims),
         "provider_specialty": np.random.choice(specialties, num_claims),
         "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
-        "procedure_code": np.random.choice(procedure_codes, num_claims),
-        "claim_charges": [procedure_charges[code] for code in data["procedure_code"]],
+        "procedure_code": procedure_code_list,
+        "claim_charges": [procedure_charges[code] for code in procedure_code_list],
     }
 
     # Add derived features that might influence rework probability
@@ -213,37 +216,6 @@ def generate_synthetic_claims(
     df = df[column_order]
 
     return df
-
-
-# Initialize console and environment
-c = Console()
-os.system("cls" if os.name == "nt" else "clear")
-os.makedirs("data", exist_ok=True)
-os.makedirs("plots", exist_ok=True)
-
-
-# Generate the dataset
-claims_df = generate_synthetic_claims(100)
-
-# Save to CSV
-csv_filename = "data/synthesized_medical_claims.csv"
-claims_df.to_csv(csv_filename, index=False)
-
-# Display first few rows and summary statistics
-c.print("\nFirst few rows of the dataset:")
-c.print(claims_df.head())
-
-c.print("\nSummary statistics:")
-c.print(claims_df.describe())
-
-c.print("\nLOS statistics by procedure type:")
-c.print(claims_df.groupby("procedure_code")[["avg_los", "actual_los", "los_difference"]].mean())
-
-c.print("\nCorrelation between LOS difference and rework:")
-c.print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
-
-
-# ********************
 
 
 def prepare_features(df):
@@ -321,8 +293,35 @@ def calculate_priority_scores(data, model, scaler, features):
     return rework_prob, impact_score, priority_score
 
 
-# Load and prepare the data
-claims_df = pd.read_csv(csv_filename)
+# Initialize console and environment
+c = Console()
+os.system("cls" if os.name == "nt" else "clear")
+os.makedirs("data", exist_ok=True)
+os.makedirs("plots", exist_ok=True)
+
+
+# Generate the dataset
+claims_df = generate_synthetic_claims(100)
+
+# Save to CSV
+csv_filename = "data/synthesized_medical_claims.csv"
+claims_df.to_csv(csv_filename, index=False)
+
+# Display first few rows and summary statistics
+c.print("\nFirst few rows of the dataset:")
+c.print(claims_df.head())
+
+c.print("\nSummary statistics:")
+c.print(claims_df.describe())
+
+c.print("\nLOS statistics by procedure type:")
+c.print(claims_df.groupby("procedure_code")[["avg_los", "actual_los", "los_difference"]].mean())
+
+c.print("\nCorrelation between LOS difference and rework:")
+c.print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
+
+
+# prepare the data
 prepared_data, features = prepare_features(claims_df)
 
 # Train and evaluate the model
