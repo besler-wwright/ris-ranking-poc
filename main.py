@@ -1,133 +1,193 @@
-import os
+import random
+from datetime import datetime, timedelta
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from rich.console import Console
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.metrics import mean_absolute_error
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, roc_auc_score
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
-should_be_simple = False  # make a really simple data set for demo purposes
-force_fresh_data = True  # ignore existing data (csv file) and generate new data
 
-# Initialize console and environment
-c = Console()
-os.system("cls" if os.name == "nt" else "clear")
-os.makedirs("data", exist_ok=True)
-os.makedirs("plots", exist_ok=True)
+def train_claim_scoring_model(claims_data, features):
+    """
+    Train a model to score claims based on rework probability and payment impact.
 
-# Set data directory
-data_dir = "data"
+    Parameters:
+    claims_data (pd.DataFrame): DataFrame containing claims data
+    features (list): List of feature columns to use for prediction
 
-# Set random seed for reproducibility
-np.random.seed(42)
+    Returns:
+    tuple: (trained_model, scaler, feature_importance)
+    """
+    # Prepare the data
+    X = claims_data[features]
+    y = claims_data["needs_rework"]  # Binary target variable
 
-# Filename for the synthesized dataset
+    # Split the data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Scale the features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Train Random Forest model
+    model = RandomForestClassifier(n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=42)
+    model.fit(X_train_scaled, y_train)
+
+    # Get feature importance
+    feature_importance = pd.DataFrame({"feature": features, "importance": model.feature_importances_}).sort_values("importance", ascending=False)
+
+    return model, scaler, feature_importance
+
+
+def score_claims(model, scaler, new_claims, features):
+    """
+    Score new claims based on rework probability and potential payment impact.
+
+    Parameters:
+    model: Trained model
+    scaler: Fitted StandardScaler
+    new_claims (pd.DataFrame): New claims to score
+    features (list): List of feature columns used in training
+
+    Returns:
+    pd.DataFrame: Original claims data with priority scores
+    """
+    # Scale the features
+    X_new_scaled = scaler.transform(new_claims[features])
+
+    # Get probability of rework needed
+    rework_prob = model.predict_proba(X_new_scaled)[:, 1]
+
+    # Calculate expected payment impact
+    # Using historical average payment difference for reworked claims
+    avg_payment_diff = new_claims["payment_difference"].mean()
+    expected_impact = rework_prob * avg_payment_diff
+
+    # Calculate priority score (combining probability and impact)
+    # Normalize both components to 0-1 scale
+    normalized_prob = rework_prob / rework_prob.max()
+    normalized_impact = expected_impact / expected_impact.max()
+
+    # Combine scores (equal weight to probability and impact)
+    priority_score = (normalized_prob + normalized_impact) / 2
+
+    # Add scores to the claims data
+    scored_claims = new_claims.copy()
+    scored_claims["rework_probability"] = rework_prob
+    scored_claims["expected_impact"] = expected_impact
+    scored_claims["priority_score"] = priority_score
+
+    return scored_claims.sort_values("priority_score", ascending=False)
+
+
+def generate_synthetic_claims(num_claims=1000):
+    """
+    Generate synthetic medical claims data with realistic patterns.
+    """
+    np.random.seed(42)
+
+    # Create lists for categorical variables
+    provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, 51)]  # 50 providers
+    diagnosis_codes = [f"ICD{str(i).zfill(3)}" for i in range(1, 31)]  # 30 diagnosis codes
+    procedure_codes = [f"CPT{str(i).zfill(4)}" for i in range(1, 41)]  # 40 procedure codes
+    specialties = ["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"]
+
+    # Generate procedure-specific average LOS
+    procedure_los = {}
+    for code in procedure_codes:
+        # Different procedures have different typical LOS
+        if code.startswith("CPT00"):  # Complex procedures
+            procedure_los[code] = np.random.uniform(5, 10)
+        elif code.startswith("CPT01"):  # Medium procedures
+            procedure_los[code] = np.random.uniform(3, 6)
+        else:  # Simpler procedures
+            procedure_los[code] = np.random.uniform(1, 4)
+
+    # Generate base data
+    data = {
+        "claim_id": [f"CLM{str(i).zfill(6)}" for i in range(1, num_claims + 1)],
+        "date_submitted": [(datetime(2024, 1, 1) + timedelta(days=np.random.randint(0, 365))).strftime("%Y-%m-%d") for _ in range(num_claims)],
+        "provider_id": np.random.choice(provider_ids, num_claims),
+        "provider_specialty": np.random.choice(specialties, num_claims),
+        "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
+        "procedure_code": np.random.choice(procedure_codes, num_claims),
+        "claim_amount": np.random.lognormal(mean=6, sigma=1, size=num_claims),  # Most claims between $100-$2000
+    }
+
+    # Add derived features that might influence rework probability
+    df = pd.DataFrame(data)
+
+    # Add LOS features
+    df["expected_los"] = df["procedure_code"].map(procedure_los)
+
+    # Generate actual LOS with some variation around the expected LOS
+    df["actual_los"] = df.apply(lambda row: max(1, np.random.normal(row["expected_los"], row["expected_los"] * 0.2)), axis=1).round(1)  # 20% standard deviation
+
+    # Calculate LOS difference (actual - expected)
+    df["los_difference"] = (df["actual_los"] - df["expected_los"]).round(1)
+
+    # Generate 'needs_rework' based on various factors including LOS
+    rework_probabilities = (
+        # Base probability
+        np.random.random(num_claims) * 0.2
+        +
+        # Higher amounts more likely to need rework
+        (df["claim_amount"] > 1000).astype(float) * 0.1
+        +
+        # Certain procedures more likely to need rework
+        (df["procedure_code"].isin(["CPT0001", "CPT0002", "CPT0003"])).astype(float) * 0.15
+        +
+        # Certain providers more likely to need rework
+        (df["provider_id"].isin(["PRV0001", "PRV0002"])).astype(float) * 0.2
+        +
+        # LOS difference increases rework probability
+        (abs(df["los_difference"]) > 2).astype(float) * 0.2
+    )
+
+    df["needs_rework"] = (rework_probabilities > 0.5).astype(int)
+
+    # Generate payment difference for reworked claims
+    df["payment_difference"] = 0.0
+    rework_mask = df["needs_rework"] == 1
+
+    # Payment difference is related to original claim amount and LOS difference
+    df.loc[rework_mask, "payment_difference"] = df.loc[rework_mask, "claim_amount"] * (
+        np.random.uniform(-0.3, 0.3, size=rework_mask.sum()) + df.loc[rework_mask, "los_difference"] * 0.05
+    )  # LOS difference affects payment
+
+    # Round monetary values to 2 decimal places
+    df["claim_amount"] = df["claim_amount"].round(2)
+    df["payment_difference"] = df["payment_difference"].round(2)
+
+    # Add some additional features that might be useful
+    df["days_since_provider_last_claim"] = df.groupby("provider_id")["date_submitted"].diff().dt.days.fillna(0)
+    df["provider_claim_count"] = df.groupby("provider_id").cumcount()
+
+    # Sort by date
+    df = df.sort_values("date_submitted")
+
+    return df
+
+
+# Generate the dataset
+claims_df = generate_synthetic_claims(1000)
+
+# Save to CSV
 csv_filename = "data/synthesized_medical_claims.csv"
+claims_df.to_csv(csv_filename, index=False)
 
-if os.path.exists(csv_filename) and not force_fresh_data:
-    # Load the dataset from the CSV file
-    c.print(f"[yellow]Loading data from {csv_filename}...[/yellow]")
-    data = pd.read_csv(csv_filename)
-    c.print(f"Data loaded from {csv_filename}.")
-else:
-    c.print("[yellow]Generating synthetic data...[/yellow]")
-    # Number of samples
-    n_samples = 10
+# Display first few rows and summary statistics
+print("\nFirst few rows of the dataset:")
+print(claims_df.head())
 
-    if should_be_simple:
-        # Simple synthetic dataset
-        data = pd.DataFrame(
-            {
-                "DiagnosisCode": np.random.choice(["X"], n_samples),
-                "ProcedureCode": np.random.choice(["A"], n_samples),
-                "AvgLengthOfStay": np.random.randint(5, n_samples),
-                "PatientAge": np.random.randint(18, 100, n_samples),
-                "PatientGender": np.random.choice(["Male", "Female"], n_samples),
-                "DaysToProcess": np.random.randint(1, 30, n_samples),
-                "ClaimAmount": 100,
-            }
-        )
-    else:
-        # Generate synthetic features
-        data = pd.DataFrame(
-            {
-                "DiagnosisCode": np.random.choice(["X", "Y", "Z"], n_samples),
-                "ProcedureCode": np.random.choice(["A", "B", "C", "D"], n_samples),
-                "AvgLengthOfStay": np.random.randint(5, n_samples),
-                "PatientAge": np.random.randint(18, 100, n_samples),
-                "PatientGender": np.random.choice(["Male", "Female"], n_samples),
-                "DaysToProcess": np.random.randint(1, 30, n_samples),
-                "ClaimAmount": np.round(np.random.uniform(100, 10000, n_samples), 2),
-            }
-        )
+print("\nSummary statistics:")
+print(claims_df.describe())
 
-    # Simulate the delta in payment (target variable)
-    def simulate_delta(row):
-        delta = 0
+print("\nLOS statistics by procedure type:")
+print(claims_df.groupby("procedure_code")[["expected_los", "actual_los", "los_difference"]].mean())
 
-        if should_be_simple:
-            if row["PatientGender"] == "Male":
-                delta -= np.random.uniform(50, 200)
-            # Introduce randomness
-            # delta += np.random.normal(0, 50)
-            return max(delta, 0)  # Delta should not be negative
-        else:
-
-            if row["ProcedureCode"] == "A":
-                delta += np.random.uniform(100, 500)
-            if row["PatientAge"] > 65:
-                delta += np.random.uniform(50, 300)
-            if row["DiagnosisCode"] == "Z":
-                delta -= np.random.uniform(50, 200)
-            # Introduce randomness
-            delta += np.random.normal(0, 50)
-            return max(delta, 0)  # Delta should not be negative
-
-    data["DeltaPayment"] = data.apply(simulate_delta, axis=1)
-
-    # Save the synthesized dataset to CSV
-    data.to_csv(csv_filename, index=False)
-    print(f"Synthesized data saved to {csv_filename}.")
-
-# One-hot encode categorical variables
-categorical_features = ["ProcedureCode", "PatientGender", "DiagnosisCode"]
-data_encoded = pd.get_dummies(data, columns=categorical_features, drop_first=True)
-
-# Features and target
-X = data_encoded.drop("DeltaPayment", axis=1)
-y = data_encoded["DeltaPayment"]
-
-# Split the data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Initialize and fit the model
-model = GradientBoostingRegressor(random_state=42)
-model.fit(X_train, y_train)
-
-# Predict and evaluate
-y_pred = model.predict(X_test)
-mae = mean_absolute_error(y_test, y_pred)
-print(f"Mean Absolute Error on test set: {mae:.2f}")
-
-# Plot actual vs. predicted values
-plt.figure(figsize=(8, 6))
-plt.scatter(y_test, y_pred, alpha=0.7)
-plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], "r--")
-plt.xlabel("Actual DeltaPayment")
-plt.ylabel("Predicted DeltaPayment")
-plt.title("Actual vs. Predicted DeltaPayment")
-plt.savefig("plots/actual_vs_predicted.png")
-plt.close()
-print("Plot saved as 'plots/actual_vs_predicted.png'")
-
-# Rank new claims
-X_new = X_test.copy()
-delta_predictions = model.predict(X_new)
-results = X_new.copy()
-results["PredictedDeltaPayment"] = delta_predictions
-results_sorted = results.sort_values(by="PredictedDeltaPayment", ascending=False)
-
-print("Top 5 claims likely needing rework:")
-print(results_sorted.head(5)[["PredictedDeltaPayment"]])
+print("\nCorrelation between LOS difference and rework:")
+print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
