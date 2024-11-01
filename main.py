@@ -324,8 +324,13 @@ scored_claims_sorted = scored_claims.sort_values("priority_score", ascending=Fal
 c.print("\nFeature Importance:")
 c.print(feature_importance)
 
+# Print prediction distributions
+predictions = (y_pred_proba > 0.5).astype(int)
+c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
+c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
+
 c.print("\nModel Performance:")
-c.print(classification_report(y_test, (y_pred_proba > 0.5).astype(int)))
+c.print(classification_report(y_test, predictions, zero_division=0))
 
 c.print("\nTop 10 Priority Claims:")
 c.print(scored_claims_sorted[["claim_id", "claim_amount", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
