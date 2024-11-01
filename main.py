@@ -8,6 +8,9 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
 
+should_be_simple = True  # make a really simple data set for demo purposes
+force_fresh_data = True  # ignore existing data (csv file) and generate new data
+
 # Initialize console and environment
 c = Console()
 os.system("cls" if os.name == "nt" else "clear")
@@ -23,39 +26,64 @@ np.random.seed(42)
 # Filename for the synthesized dataset
 csv_filename = "data/synthesized_medical_claims.csv"
 
-if os.path.exists(csv_filename):
+if os.path.exists(csv_filename) and not force_fresh_data:
     # Load the dataset from the CSV file
+    c.print(f"[yellow]Loading data from {csv_filename}...[/yellow]")
     data = pd.read_csv(csv_filename)
-    print(f"Data loaded from {csv_filename}.")
+    c.print(f"Data loaded from {csv_filename}.")
 else:
+    c.print("[yellow]Generating synthetic data...[/yellow]")
     # Number of samples
-    n_samples = 200
+    n_samples = 10
 
-    # Generate synthetic features
-    data = pd.DataFrame(
-        {
-            "ClaimAmount": np.random.uniform(100, 10000, n_samples),
-            "ProcedureCode": np.random.choice(["A", "B", "C", "D"], n_samples),
-            "ProviderType": np.random.choice(["General", "Specialist"], n_samples),
-            "PatientAge": np.random.randint(0, 100, n_samples),
-            "PatientGender": np.random.choice(["Male", "Female"], n_samples),
-            "DiagnosisCode": np.random.choice(["X", "Y", "Z"], n_samples),
-            "DaysToProcess": np.random.randint(1, 30, n_samples),
-        }
-    )
+    if should_be_simple:
+        # Simple synthetic dataset
+        data = pd.DataFrame(
+            {
+                "DiagnosisCode": np.random.choice(["X"], n_samples),
+                "ProcedureCode": np.random.choice(["A"], n_samples),
+                "AvgLengthOfStay": np.random.randint(5, n_samples),
+                "PatientAge": np.random.randint(18, 100, n_samples),
+                "PatientGender": ["Male", "Female"],
+                "DaysToProcess": np.random.randint(1, 30, n_samples),
+                "ClaimAmount": np.random.uniform(100, 10000, n_samples),
+            }
+        )
+    else:
+        # Generate synthetic features
+        data = pd.DataFrame(
+            {
+                "DiagnosisCode": np.random.choice(["X", "Y", "Z"], n_samples),
+                "ProcedureCode": np.random.choice(["A", "B", "C", "D"], n_samples),
+                "AvgLengthOfStay": np.random.randint(5, n_samples),
+                "PatientAge": np.random.randint(18, 100, n_samples),
+                "PatientGender": np.random.choice(["Male", "Female"], n_samples),
+                "DaysToProcess": np.random.randint(1, 30, n_samples),
+                "ClaimAmount": np.random.uniform(100, 10000, n_samples),
+            }
+        )
 
     # Simulate the delta in payment (target variable)
     def simulate_delta(row):
         delta = 0
-        if row["ProcedureCode"] == "A" and row["ProviderType"] == "Specialist":
-            delta += np.random.uniform(100, 500)
-        if row["PatientAge"] > 65:
-            delta += np.random.uniform(50, 300)
-        if row["DiagnosisCode"] == "Z":
-            delta -= np.random.uniform(50, 200)
-        # Introduce randomness
-        delta += np.random.normal(0, 50)
-        return max(delta, 0)  # Delta should not be negative
+
+        if should_be_simple:
+            if row["PatientGender"] == "Male":
+                delta -= np.random.uniform(50, 200)
+            # Introduce randomness
+            delta += np.random.normal(0, 50)
+            return max(delta, 0)  # Delta should not be negative
+        else:
+
+            if row["ProcedureCode"] == "A":
+                delta += np.random.uniform(100, 500)
+            if row["PatientAge"] > 65:
+                delta += np.random.uniform(50, 300)
+            if row["DiagnosisCode"] == "Z":
+                delta -= np.random.uniform(50, 200)
+            # Introduce randomness
+            delta += np.random.normal(0, 50)
+            return max(delta, 0)  # Delta should not be negative
 
     data["DeltaPayment"] = data.apply(simulate_delta, axis=1)
 
@@ -64,7 +92,7 @@ else:
     print(f"Synthesized data saved to {csv_filename}.")
 
 # One-hot encode categorical variables
-categorical_features = ["ProcedureCode", "ProviderType", "PatientGender", "DiagnosisCode"]
+categorical_features = ["ProcedureCode", "PatientGender", "DiagnosisCode"]
 data_encoded = pd.get_dummies(data, columns=categorical_features, drop_first=True)
 
 # Features and target
@@ -90,7 +118,7 @@ plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], "r--")
 plt.xlabel("Actual DeltaPayment")
 plt.ylabel("Predicted DeltaPayment")
 plt.title("Actual vs. Predicted DeltaPayment")
-plt.savefig('plots/actual_vs_predicted.png')
+plt.savefig("plots/actual_vs_predicted.png")
 plt.close()
 print("Plot saved as 'plots/actual_vs_predicted.png'")
 
