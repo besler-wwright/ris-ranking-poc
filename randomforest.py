@@ -137,13 +137,13 @@ def generate_synthetic_claims(
     df = pd.DataFrame(data)
 
     # Add LOS features
-    df["expected_los"] = df["procedure_code"].map(procedure_los)
+    df["avg_los"] = df["procedure_code"].map(procedure_los)
 
     # Generate actual LOS with some variation around the expected LOS
-    df["actual_los"] = df.apply(lambda row: max(1, np.random.normal(row["expected_los"], row["expected_los"] * 0.2)), axis=1).round(1)  # 20% standard deviation
+    df["actual_los"] = df.apply(lambda row: max(1, np.random.normal(row["avg_los"], row["avg_los"] * 0.2)), axis=1).round(1)  # 20% standard deviation
 
     # Calculate LOS difference (actual - expected)
-    df["los_difference"] = (df["actual_los"] - df["expected_los"]).round(1)
+    df["los_difference"] = (df["actual_los"] - df["avg_los"]).round(1)
 
     # Generate 'needs_rework' based on various factors including LOS
     rework_probabilities = (
@@ -195,7 +195,7 @@ def generate_synthetic_claims(
         "diagnosis_code",
         "procedure_code",
         "claim_amount",
-        "expected_los",
+        "avg_los",
         "actual_los",
         "los_difference",
         "provider_id",
@@ -232,7 +232,7 @@ c.print("\nSummary statistics:")
 c.print(claims_df.describe())
 
 c.print("\nLOS statistics by procedure type:")
-c.print(claims_df.groupby("procedure_code")[["expected_los", "actual_los", "los_difference"]].mean())
+c.print(claims_df.groupby("procedure_code")[["avg_los", "actual_los", "los_difference"]].mean())
 
 c.print("\nCorrelation between LOS difference and rework:")
 c.print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
@@ -262,7 +262,7 @@ def prepare_features(df):
         "procedure_code_encoded",
         "diagnosis_code_encoded",
         "provider_specialty_encoded",
-        "expected_los",
+        "avg_los",
         "actual_los",
         "los_difference",
         "days_since_provider_last_claim",
