@@ -192,7 +192,7 @@ os.makedirs("plots", exist_ok=True)
 
 
 # Generate the dataset
-claims_df = generate_synthetic_claims(1000)
+claims_df = generate_synthetic_claims(10)
 
 # Save to CSV
 csv_filename = "data/synthesized_medical_claims.csv"
@@ -331,4 +331,4 @@ c.print("\nTop 10 Priority Claims:")
 c.print(scored_claims_sorted[["claim_id", "claim_amount", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
 
 # Save scored claims to CSV
-scored_claims_sorted.to_csv("scored_medical_claims.csv", index=False)
+scored_claims_sorted.to_csv("data/scored_medical_claims.csv", index=False)
