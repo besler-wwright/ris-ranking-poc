@@ -116,11 +116,11 @@ def generate_synthetic_claims(
     for code in procedure_codes:
         # Different procedures have different typical LOS
         if code.startswith("CPT00"):  # Complex procedures
-            procedure_los[code] = np.random.uniform(5, 10)
+            procedure_los[code] = np.round(np.random.uniform(5, 10), 1)
         elif code.startswith("CPT01"):  # Medium procedures
-            procedure_los[code] = np.random.uniform(3, 6)
+            procedure_los[code] = np.round(np.random.uniform(3, 6), 1)
         else:  # Simpler procedures
-            procedure_los[code] = np.random.uniform(1, 4)
+            procedure_los[code] = np.round(np.random.uniform(1, 4), 1)
 
     # Generate base data
     data = {
@@ -368,7 +368,7 @@ column_order = [
     "diagnosis_code",
     "procedure_code",
     "claim_amount",
-    "expected_los",
+    "avg_los",
     "actual_los",
     "los_difference",
     "provider_id",
