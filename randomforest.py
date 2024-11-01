@@ -1,11 +1,17 @@
 import os
+
+from rich.console import Console
+
+# Initialize console and environment
+c = Console()
+os.system("cls" if os.name == "nt" else "clear")
+
 import random
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from rich.console import Console
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     auc,
@@ -293,33 +299,51 @@ def calculate_priority_scores(data, model, scaler, features):
     return rework_prob, impact_score, priority_score
 
 
-# Initialize console and environment
-c = Console()
-os.system("cls" if os.name == "nt" else "clear")
+def display_stats_for_df(claims_df):
+    """
+    Display various statistics for a given DataFrame containing claims data.
+
+    Parameters:
+    claims_df (pandas.DataFrame): A DataFrame containing claims data with the following columns:
+        - procedure_code: The code for the medical procedure.
+        - avg_los: The average length of stay.
+        - actual_los: The actual length of stay.
+        - los_difference: The difference between the average and actual length of stay.
+        - needs_rework: A binary indicator of whether rework is needed.
+
+    The function prints:
+    - The first few rows of the dataset.
+    - Summary statistics for the dataset.
+    - LOS (Length of Stay) statistics grouped by procedure type.
+    - Correlation between LOS difference and the need for rework.
+    """
+
+    c = Console()
+    c.print("\n[black]-----First few rows of the dataset:[/black]--------------------------------------")
+    c.print(claims_df.head())
+
+    # c.print("\nSummary statistics:")
+    # c.print(claims_df.describe())
+
+    c.print("\n[black]-----LOS statistics by procedure type:[/black]--------------------------------")
+    c.print(claims_df.groupby("procedure_code")[["avg_los", "actual_los", "los_difference"]].mean())
+
+    c.print("\n[black]-----Correlation between LOS difference and rework:[/black]-------------------")
+    c.print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
+
+
 os.makedirs("data", exist_ok=True)
 os.makedirs("plots", exist_ok=True)
 
 
 # Generate the dataset
+df_name_prefix = "SIMPLE"
 claims_df = generate_synthetic_claims(100)
 
 # Save to CSV
-csv_filename = "data/synthesized_medical_claims.csv"
+csv_filename = f"data/{df_name_prefix}_synthesized_medical_claims.csv"
 claims_df.to_csv(csv_filename, index=False)
-
-# Display first few rows and summary statistics
-c.print("\nFirst few rows of the dataset:")
-c.print(claims_df.head())
-
-c.print("\nSummary statistics:")
-c.print(claims_df.describe())
-
-c.print("\nLOS statistics by procedure type:")
-c.print(claims_df.groupby("procedure_code")[["avg_los", "actual_los", "los_difference"]].mean())
-
-c.print("\nCorrelation between LOS difference and rework:")
-c.print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
-
+display_stats_for_df(claims_df)
 
 # prepare the data
 prepared_data, features = prepare_features(claims_df)
@@ -339,20 +363,6 @@ scored_claims["priority_score"] = priority_score
 # Sort by priority score
 scored_claims_sorted = scored_claims.sort_values("priority_score", ascending=False)
 
-# Print summary statistics and top priority claims
-c.print("\nFeature Importance:")
-c.print(feature_importance)
-
-# Print prediction distributions
-predictions = (y_pred_proba > 0.5).astype(int)
-c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
-c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
-
-c.print("\nModel Performance:")
-c.print(classification_report(y_test, predictions, zero_division=0))
-
-c.print("\nTop 10 Priority Claims:")
-c.print(scored_claims_sorted[["claim_id", "claim_charges", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
 
 # Reorder columns before saving
 column_order = [
@@ -372,4 +382,19 @@ column_order = [
 scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
 
 # Save scored claims to CSV
-scored_claims_sorted.to_csv("data/scored_medical_claims.csv", index=False)
+scored_claims_sorted.to_csv(f"data/{df_name_prefix}scored_medical_claims.csv", index=False)
+
+# Print summary statistics and top priority claims
+c.print("\nFeature Importance:")
+c.print(feature_importance)
+
+# Print prediction distributions
+predictions = (y_pred_proba > 0.5).astype(int)
+c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
+c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
+
+c.print("\nModel Performance:")
+c.print(classification_report(y_test, predictions, zero_division=0))
+
+c.print("\nTop 10 Priority Claims:")
+c.print(scored_claims_sorted[["claim_id", "claim_charges", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
