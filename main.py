@@ -8,7 +8,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
 
-should_be_simple = True  # make a really simple data set for demo purposes
+should_be_simple = False  # make a really simple data set for demo purposes
 force_fresh_data = True  # ignore existing data (csv file) and generate new data
 
 # Initialize console and environment
@@ -46,7 +46,7 @@ else:
                 "PatientAge": np.random.randint(18, 100, n_samples),
                 "PatientGender": np.random.choice(["Male", "Female"], n_samples),
                 "DaysToProcess": np.random.randint(1, 30, n_samples),
-                "ClaimAmount": np.round(np.random.uniform(100, n_samples), 2),
+                "ClaimAmount": 100,
             }
         )
     else:
