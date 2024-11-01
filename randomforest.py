@@ -123,7 +123,7 @@ def generate_synthetic_claims(num_claims=1000):
         "provider_specialty": np.random.choice(specialties, num_claims),
         "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
         "procedure_code": np.random.choice(procedure_codes, num_claims),
-        "claim_amount": np.random.lognormal(mean=6, sigma=1, size=num_claims),  # Most claims between $100-$2000
+        "claim_amount": np.random.lognormal(mean=8, sigma=0.3, size=num_claims).clip(1000, 5000),  # Claims between $1000-$5000
     }
 
     # Add derived features that might influence rework probability
