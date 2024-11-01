@@ -1,12 +1,21 @@
+import os
 import random
 from datetime import datetime, timedelta
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from rich.console import Console
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix, roc_auc_score
+from sklearn.metrics import (
+    auc,
+    classification_report,
+    confusion_matrix,
+    roc_auc_score,
+    roc_curve,
+)
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
 def train_claim_scoring_model(claims_data, features):
@@ -175,6 +184,13 @@ def generate_synthetic_claims(num_claims=1000):
     return df
 
 
+# Initialize console and environment
+c = Console()
+os.system("cls" if os.name == "nt" else "clear")
+os.makedirs("data", exist_ok=True)
+os.makedirs("plots", exist_ok=True)
+
+
 # Generate the dataset
 claims_df = generate_synthetic_claims(1000)
 
@@ -183,14 +199,136 @@ csv_filename = "data/synthesized_medical_claims.csv"
 claims_df.to_csv(csv_filename, index=False)
 
 # Display first few rows and summary statistics
-print("\nFirst few rows of the dataset:")
-print(claims_df.head())
+c.print("\nFirst few rows of the dataset:")
+c.print(claims_df.head())
 
-print("\nSummary statistics:")
-print(claims_df.describe())
+c.print("\nSummary statistics:")
+c.print(claims_df.describe())
 
-print("\nLOS statistics by procedure type:")
-print(claims_df.groupby("procedure_code")[["expected_los", "actual_los", "los_difference"]].mean())
+c.print("\nLOS statistics by procedure type:")
+c.print(claims_df.groupby("procedure_code")[["expected_los", "actual_los", "los_difference"]].mean())
 
-print("\nCorrelation between LOS difference and rework:")
-print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
+c.print("\nCorrelation between LOS difference and rework:")
+c.print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
+
+
+# ********************
+
+
+def prepare_features(df):
+    """
+    Prepare features for the model, including encoding and feature engineering.
+    """
+    # Create a copy to avoid modifying original data
+    data = df.copy()
+
+    # Encode categorical variables
+    le = LabelEncoder()
+    data["provider_id_encoded"] = le.fit_transform(data["provider_id"])
+    data["procedure_code_encoded"] = le.fit_transform(data["procedure_code"])
+    data["diagnosis_code_encoded"] = le.fit_transform(data["diagnosis_code"])
+    data["provider_specialty_encoded"] = le.fit_transform(data["provider_specialty"])
+
+    # Create feature list for model
+    features = [
+        "claim_amount",
+        "provider_id_encoded",
+        "procedure_code_encoded",
+        "diagnosis_code_encoded",
+        "provider_specialty_encoded",
+        "expected_los",
+        "actual_los",
+        "los_difference",
+        "days_since_provider_last_claim",
+        "provider_claim_count",
+    ]
+
+    return data, features
+
+
+def train_and_evaluate_model(data, features):
+    """
+    Train the model and evaluate its performance.
+    """
+    X = data[features]
+    y = data["needs_rework"]
+
+    # Split the data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Train model
+    model = RandomForestClassifier(n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=42)
+    model.fit(X_train_scaled, y_train)
+
+    # Get feature importance
+    feature_importance = pd.DataFrame({"feature": features, "importance": model.feature_importances_}).sort_values("importance", ascending=False)
+
+    # Get predictions
+    y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+
+    return model, scaler, feature_importance, X_test, y_test, y_pred_proba
+
+
+def calculate_priority_scores(data, model, scaler, features):
+    """
+    Calculate priority scores combining rework probability and potential impact.
+    """
+    X = data[features]
+    X_scaled = scaler.transform(X)
+
+    # Get rework probabilities
+    rework_prob = model.predict_proba(X_scaled)[:, 1]
+
+    # Calculate expected impact based on both payment difference and LOS difference
+    avg_payment_impact = abs(data["payment_difference"]).mean()
+    avg_los_impact = abs(data["los_difference"]).mean()
+
+    # Normalize payment and LOS impacts to 0-1 scale
+    normalized_payment_impact = abs(data["payment_difference"]) / abs(data["payment_difference"]).max()
+    normalized_los_impact = abs(data["los_difference"]) / abs(data["los_difference"]).max()
+
+    # Combined impact score (weighted average of payment and LOS impact)
+    impact_score = normalized_payment_impact * 0.7 + normalized_los_impact * 0.3
+
+    # Calculate final priority score
+    priority_score = rework_prob * 0.6 + impact_score * 0.4
+
+    return rework_prob, impact_score, priority_score
+
+
+# Load and prepare the data
+claims_df = pd.read_csv(csv_filename)
+prepared_data, features = prepare_features(claims_df)
+
+# Train and evaluate the model
+model, scaler, feature_importance, X_test, y_test, y_pred_proba = train_and_evaluate_model(prepared_data, features)
+
+# Calculate priority scores for all claims
+rework_prob, impact_score, priority_score = calculate_priority_scores(prepared_data, model, scaler, features)
+
+# Add scores to the original dataframe
+scored_claims = claims_df.copy()
+scored_claims["rework_probability"] = rework_prob
+scored_claims["impact_score"] = impact_score
+scored_claims["priority_score"] = priority_score
+
+# Sort by priority score
+scored_claims_sorted = scored_claims.sort_values("priority_score", ascending=False)
+
+# Print summary statistics and top priority claims
+c.print("\nFeature Importance:")
+c.print(feature_importance)
+
+c.print("\nModel Performance:")
+c.print(classification_report(y_test, (y_pred_proba > 0.5).astype(int)))
+
+c.print("\nTop 10 Priority Claims:")
+c.print(scored_claims_sorted[["claim_id", "claim_amount", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
+
+# Save scored claims to CSV
+scored_claims_sorted.to_csv("scored_medical_claims.csv", index=False)
