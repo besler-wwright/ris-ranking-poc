@@ -5,6 +5,7 @@ from rich.console import Console
 # Initialize console and environment
 c = Console()
 os.system("cls" if os.name == "nt" else "clear")
+c.print("[bold green]RIS Ranking Proof of Concept[/bold green]")
 
 import random
 from datetime import datetime, timedelta
@@ -99,7 +100,7 @@ def score_claims(model, scaler, new_claims, features):
 
 
 def generate_synthetic_claims(
-    num_claims=100,
+    num_claims=1000,
     seed=42,
     num_of_providers=1,
     num_of_diagnosis_codes=1,
@@ -115,7 +116,6 @@ def generate_synthetic_claims(
     provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, num_of_providers + 1)]  # 50 providers
     diagnosis_codes = [f"ICD{str(i).zfill(3)}" for i in range(1, num_of_diagnosis_codes + 1)]  # 30 diagnosis codes
     procedure_codes = [f"CPT{str(i).zfill(4)}" for i in range(1, num_of_procedure_codes + 1)]  # 40 procedure codes
-    specialties = ["Internal Med"]
 
     # Generate diagnosis-specific average LOS
     diagnosis_los = {}
@@ -369,7 +369,14 @@ os.makedirs("plots", exist_ok=True)
 
 # Generate the dataset
 df_name_prefix = "SIMPLE"
-claims_df = generate_synthetic_claims(100)
+claims_df = generate_synthetic_claims(
+    num_claims=100,
+    seed=42,
+    num_of_providers=1,
+    num_of_diagnosis_codes=1,
+    num_of_procedure_codes=1,
+    specialties=["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"],
+)
 
 # Save to CSV
 csv_filename = f"data/{df_name_prefix}_synthesized_medical_claims.csv"
