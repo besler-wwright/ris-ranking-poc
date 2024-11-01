@@ -44,7 +44,7 @@ else:
                 "ProcedureCode": np.random.choice(["A"], n_samples),
                 "AvgLengthOfStay": np.random.randint(5, n_samples),
                 "PatientAge": np.random.randint(18, 100, n_samples),
-                "PatientGender": ["Male", "Female"],
+                "PatientGender": np.random.choice(["Male", "Female"], n_samples),
                 "DaysToProcess": np.random.randint(1, 30, n_samples),
                 "ClaimAmount": np.random.uniform(100, 10000, n_samples),
             }
