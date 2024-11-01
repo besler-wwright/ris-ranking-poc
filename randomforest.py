@@ -122,6 +122,17 @@ def generate_synthetic_claims(
         else:  # Simpler procedures
             procedure_los[code] = np.round(np.random.uniform(1, 4), 1)
 
+    # Generate procedure-specific charges
+    procedure_charges = {}
+    for code in procedure_codes:
+        # Different procedures have different costs
+        if code.startswith("CPT00"):  # Complex procedures
+            procedure_charges[code] = round(np.random.uniform(4000, 5000), 2)
+        elif code.startswith("CPT01"):  # Medium procedures
+            procedure_charges[code] = round(np.random.uniform(2500, 4000), 2)
+        else:  # Simpler procedures
+            procedure_charges[code] = round(np.random.uniform(1000, 2500), 2)
+
     # Generate base data
     data = {
         "claim_id": [f"CLM{str(i).zfill(6)}" for i in range(1, num_claims + 1)],
@@ -130,7 +141,7 @@ def generate_synthetic_claims(
         "provider_specialty": np.random.choice(specialties, num_claims),
         "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
         "procedure_code": np.random.choice(procedure_codes, num_claims),
-        "claim_charges": np.random.lognormal(mean=8, sigma=0.3, size=num_claims).clip(1000, 5000),  # Claims between $1000-$5000
+        "claim_charges": [procedure_charges[code] for code in data["procedure_code"]],
     }
 
     # Add derived features that might influence rework probability
