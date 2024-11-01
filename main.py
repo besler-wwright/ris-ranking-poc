@@ -90,7 +90,9 @@ plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], "r--")
 plt.xlabel("Actual DeltaPayment")
 plt.ylabel("Predicted DeltaPayment")
 plt.title("Actual vs. Predicted DeltaPayment")
-plt.show()
+plt.savefig('plots/actual_vs_predicted.png')
+plt.close()
+print("Plot saved as 'plots/actual_vs_predicted.png'")
 
 # Rank new claims
 X_new = X_test.copy()
