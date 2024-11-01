@@ -46,7 +46,7 @@ else:
                 "PatientAge": np.random.randint(18, 100, n_samples),
                 "PatientGender": np.random.choice(["Male", "Female"], n_samples),
                 "DaysToProcess": np.random.randint(1, 30, n_samples),
-                "ClaimAmount": np.random.uniform(100, n_samples),
+                "ClaimAmount": np.round(np.random.uniform(100, n_samples), 2),
             }
         )
     else:
@@ -59,7 +59,7 @@ else:
                 "PatientAge": np.random.randint(18, 100, n_samples),
                 "PatientGender": np.random.choice(["Male", "Female"], n_samples),
                 "DaysToProcess": np.random.randint(1, 30, n_samples),
-                "ClaimAmount": np.random.uniform(100, 10000, n_samples),
+                "ClaimAmount": np.round(np.random.uniform(100, 10000, n_samples), 2),
             }
         )
 
