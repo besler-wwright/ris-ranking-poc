@@ -192,7 +192,7 @@ os.makedirs("plots", exist_ok=True)
 
 
 # Generate the dataset
-claims_df = generate_synthetic_claims(1000)  # Increased from 10 to 1000
+claims_df = generate_synthetic_claims(100)
 
 # Save to CSV
 csv_filename = "data/synthesized_medical_claims.csv"
