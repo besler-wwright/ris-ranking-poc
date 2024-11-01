@@ -181,10 +181,6 @@ def generate_synthetic_claims(
     # Convert date_submitted to datetime
     df["date_submitted"] = pd.to_datetime(df["date_submitted"])
 
-    # Add some additional features that might be useful
-    df["days_since_provider_last_claim"] = df.groupby("provider_id")["date_submitted"].diff().dt.days.fillna(0)
-    df["provider_claim_count"] = df.groupby("provider_id").cumcount()
-
     # Sort by date
     df = df.sort_values("date_submitted")
 
@@ -201,9 +197,7 @@ def generate_synthetic_claims(
         "provider_id",
         "provider_specialty",
         "needs_rework",
-        "payment_difference",
-        "days_since_provider_last_claim",
-        "provider_claim_count",
+        "payment_difference"
     ]
     df = df[column_order]
 
@@ -264,9 +258,7 @@ def prepare_features(df):
         "provider_specialty_encoded",
         "avg_los",
         "actual_los",
-        "los_difference",
-        "days_since_provider_last_claim",
-        "provider_claim_count",
+        "los_difference"
     ]
 
     return data, features
