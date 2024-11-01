@@ -162,6 +162,9 @@ def generate_synthetic_claims(num_claims=1000):
     df["claim_amount"] = df["claim_amount"].round(2)
     df["payment_difference"] = df["payment_difference"].round(2)
 
+    # Convert date_submitted to datetime
+    df["date_submitted"] = pd.to_datetime(df["date_submitted"])
+
     # Add some additional features that might be useful
     df["days_since_provider_last_claim"] = df.groupby("provider_id")["date_submitted"].diff().dt.days.fillna(0)
     df["provider_claim_count"] = df.groupby("provider_id").cumcount()
