@@ -111,16 +111,16 @@ def generate_synthetic_claims(
     procedure_codes = [f"CPT{str(i).zfill(4)}" for i in range(1, num_of_procedure_codes + 1)]  # 40 procedure codes
     specialties = ["Internal Med"]
 
-    # Generate procedure-specific average LOS
-    procedure_los = {}
-    for code in procedure_codes:
-        # Different procedures have different typical LOS
-        if code.startswith("CPT00"):  # Complex procedures
-            procedure_los[code] = np.round(np.random.uniform(5, 10), 1)
-        elif code.startswith("CPT01"):  # Medium procedures
-            procedure_los[code] = np.round(np.random.uniform(3, 6), 1)
-        else:  # Simpler procedures
-            procedure_los[code] = np.round(np.random.uniform(1, 4), 1)
+    # Generate diagnosis-specific average LOS
+    diagnosis_los = {}
+    for code in diagnosis_codes:
+        # Different diagnoses have different typical LOS
+        if code.startswith("ICD00"):  # Complex conditions
+            diagnosis_los[code] = np.round(np.random.uniform(5, 10), 1)
+        elif code.startswith("ICD01"):  # Moderate conditions
+            diagnosis_los[code] = np.round(np.random.uniform(3, 6), 1)
+        else:  # Less complex conditions
+            diagnosis_los[code] = np.round(np.random.uniform(1, 4), 1)
 
     # Generate procedure-specific charges
     procedure_charges = {}
@@ -151,7 +151,7 @@ def generate_synthetic_claims(
     df = pd.DataFrame(data)
 
     # Add LOS features
-    df["avg_los"] = df["procedure_code"].map(procedure_los)
+    df["avg_los"] = df["diagnosis_code"].map(diagnosis_los)
 
     # Generate actual LOS with some variation around the expected LOS
     df["actual_los"] = df.apply(lambda row: max(1, np.random.normal(row["avg_los"], row["avg_los"] * 0.2)), axis=1).round(1)  # 20% standard deviation
