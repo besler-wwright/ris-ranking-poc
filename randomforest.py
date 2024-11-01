@@ -130,7 +130,7 @@ def generate_synthetic_claims(
         "provider_specialty": np.random.choice(specialties, num_claims),
         "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
         "procedure_code": np.random.choice(procedure_codes, num_claims),
-        "claim_amount": np.random.lognormal(mean=8, sigma=0.3, size=num_claims).clip(1000, 5000),  # Claims between $1000-$5000
+        "claim_charges": np.random.lognormal(mean=8, sigma=0.3, size=num_claims).clip(1000, 5000),  # Claims between $1000-$5000
     }
 
     # Add derived features that might influence rework probability
@@ -148,10 +148,10 @@ def generate_synthetic_claims(
     # Generate 'needs_rework' based on various factors including LOS
     rework_probabilities = (
         # Base probability
-        np.random.random(num_claims) * 0.2
+        np.random.random(num_claims) * 0.02
         +
         # Higher amounts more likely to need rework
-        (df["claim_amount"] > 1000).astype(float) * 0.1
+        (df["claim_charges"] > 1000).astype(float) * 0.1
         +
         # Certain procedures more likely to need rework
         (df["procedure_code"].isin(["CPT0001", "CPT0002", "CPT0003"])).astype(float) * 0.15
@@ -170,12 +170,12 @@ def generate_synthetic_claims(
     rework_mask = df["needs_rework"] == 1
 
     # Payment difference is related to original claim amount and LOS difference
-    df.loc[rework_mask, "payment_difference"] = df.loc[rework_mask, "claim_amount"] * (
+    df.loc[rework_mask, "payment_difference"] = df.loc[rework_mask, "claim_charges"] * (
         np.random.uniform(-0.3, 0.3, size=rework_mask.sum()) + df.loc[rework_mask, "los_difference"] * 0.05
     )  # LOS difference affects payment
 
     # Round monetary values to 2 decimal places
-    df["claim_amount"] = df["claim_amount"].round(2)
+    df["claim_charges"] = df["claim_charges"].round(2)
     df["payment_difference"] = df["payment_difference"].round(2)
 
     # Convert date_submitted to datetime
@@ -190,14 +190,14 @@ def generate_synthetic_claims(
         "date_submitted",
         "diagnosis_code",
         "procedure_code",
-        "claim_amount",
+        "claim_charges",
         "avg_los",
         "actual_los",
         "los_difference",
         "provider_id",
         "provider_specialty",
         "needs_rework",
-        "payment_difference"
+        "payment_difference",
     ]
     df = df[column_order]
 
@@ -250,16 +250,7 @@ def prepare_features(df):
     data["provider_specialty_encoded"] = le.fit_transform(data["provider_specialty"])
 
     # Create feature list for model
-    features = [
-        "claim_amount",
-        "provider_id_encoded",
-        "procedure_code_encoded",
-        "diagnosis_code_encoded",
-        "provider_specialty_encoded",
-        "avg_los",
-        "actual_los",
-        "los_difference"
-    ]
+    features = ["claim_charges", "provider_id_encoded", "procedure_code_encoded", "diagnosis_code_encoded", "provider_specialty_encoded", "avg_los", "actual_los", "los_difference"]
 
     return data, features
 
@@ -351,7 +342,7 @@ c.print("\nModel Performance:")
 c.print(classification_report(y_test, predictions, zero_division=0))
 
 c.print("\nTop 10 Priority Claims:")
-c.print(scored_claims_sorted[["claim_id", "claim_amount", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
+c.print(scored_claims_sorted[["claim_id", "claim_charges", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
 
 # Reorder columns before saving
 column_order = [
@@ -359,7 +350,7 @@ column_order = [
     "date_submitted",
     "diagnosis_code",
     "procedure_code",
-    "claim_amount",
+    "claim_charges",
     "avg_los",
     "actual_los",
     "los_difference",
@@ -367,8 +358,6 @@ column_order = [
     "provider_specialty",
     "needs_rework",
     "payment_difference",
-    "days_since_provider_last_claim",
-    "provider_claim_count",
 ]
 scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
 
