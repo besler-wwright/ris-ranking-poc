@@ -41,11 +41,8 @@ def generate_synthetic_claims(
     """
     Generate synthetic medical claims data with realistic patterns.
     """
-    # Add validation at the start of the function
-    # if num_of_diagnosis_codes < 2:
-    #     raise ValueError("num_of_diagnosis_codes must be at least 2 to ensure proper data variation")
 
-    c.print(f"\n\n[bold green]Generating {df_name_prefix} dataset...[/bold green]")
+    c.print(f"\n[bold green]Generating {df_name_prefix} dataset...[/bold green]")
     np.random.seed(seed)
 
     csv_filename = f"data/{df_name_prefix}__synthesized_medical_claims.csv"
@@ -54,12 +51,12 @@ def generate_synthetic_claims(
     if os.path.exists(csv_filename):
         existing_df = pd.read_csv(csv_filename)
         if len(existing_df) == num_claims:
-            c.print(f"[green]Loading existing dataset of {num_claims} claims from {csv_filename}[/green]")
+            c.print(f"\t[yellow]Loading existing dataset of {num_claims} claims from {csv_filename}[/yellow]")
             # Convert date_submitted back to datetime
             existing_df["date_submitted"] = pd.to_datetime(existing_df["date_submitted"])
             return existing_df
         else:
-            c.print(f"[yellow]Existing dataset has different number of claims ({len(existing_df)} vs {num_claims}). Generating BRAND NEW dataset[/yellow]")
+            c.print(f"\t[yellow]Existing dataset has different number of claims ({len(existing_df)} vs {num_claims}). Generating BRAND NEW dataset[/yellow]")
 
     # Create lists for categorical variables
     provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, num_of_providers + 1)]  # 50 providers
@@ -183,9 +180,8 @@ def generate_synthetic_claims(
     df = df[column_order]
 
     # Save to CSV
-    csv_filename = f"data/{df_name_prefix}__synthesized_medical_claims.csv"
     df.to_csv(csv_filename, index=False)
-    c.print(f"[green]{df_name_prefix} Saved to {csv_filename}.[/green]")
+    c.print(f"\t[green]{df_name_prefix} saved to {csv_filename}[/green]")
 
     if should_display_stats:
         display_stats_for_df(df)
@@ -346,7 +342,7 @@ def score_random_forest_data(df_name_prefix, model_name, claims_df, rework_prob,
     # Save scored claims to CSV
     csv_filename = f"data/{df_name_prefix}_{model_name}_scored_medical_claims.csv"
     scored_claims_sorted.to_csv(csv_filename, index=False)
-    c.print(f"[green]{df_name_prefix} Scored Data Saved to {csv_filename}.[/green]")
+    c.print(f"\t[green]{df_name_prefix} scored data saved to {csv_filename}[/green]")
     return scored_claims_sorted
 
 
@@ -390,7 +386,7 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
     c.print("\n[black]-----Top 10 Priority Claims:[/black]--------------------------------")
     c.print(
         scored_claims_sorted[
-            ["claim_id", "diagnosis_code", "procedure_code", "claim_charges", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]
+            ["impact_score", "claim_id", "diagnosis_code", "procedure_code", "claim_charges", "rework_probability", "priority_score", "los_difference", "payment_difference"]
         ].head(  # noqa
             10
         )
@@ -399,7 +395,10 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
 
 @logger.catch
 def run_simple_scenario():
+    c = Console()
     df_name_prefix = "SIMPLE"
+    c.print(f"\n[bold green]Running {df_name_prefix} scenario *************************************[/bold green]")
+    c.print("\t[bold cyan]Expecting LOS and Payors to be important features[/bold cyan]")
     claims_df = generate_synthetic_claims(
         df_name_prefix,
         num_claims=100,
@@ -411,22 +410,67 @@ def run_simple_scenario():
         specialties=["Neurology"],
     )
     run_random_forest_and_score_data(df_name_prefix, claims_df)
+    c.print(f"\n[bold green]End of {df_name_prefix} scenario *************************************[/bold green]")
 
 
 @logger.catch
 def run_less_simple_scenario():
+    c = Console()
     df_name_prefix = "LESS_SIMPLE"
+    c.print(f"\n[bold green]Running {df_name_prefix} scenario *************************************[/bold green]")
+    c.print("\t[bold cyan]Expecting LOS, Payors, and Provider Specialties to be important features[/bold cyan]")
     claims_df = generate_synthetic_claims(
         df_name_prefix,
-        num_claims=1000,
+        num_claims=100,
         seed=42,
         num_of_payors=2,
         num_of_providers=1,
-        num_of_diagnosis_codes=100,
+        num_of_diagnosis_codes=1,
         num_of_procedure_codes=1,
         specialties=["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"],
     )
     run_random_forest_and_score_data(df_name_prefix, claims_df)
+    c.print(f"\n[bold green]End of {df_name_prefix} scenario *************************************[/bold green]")
+
+
+@logger.catch
+def run_even_less_simple_scenario():
+    c = Console()
+    df_name_prefix = "EVEN_LESS_SIMPLE"
+    c.print(f"\n[bold green]Running {df_name_prefix} scenario *************************************[/bold green]")
+    c.print("\t[bold cyan]Expecting LOS, Diag Codes, and Payors to be important features[/bold cyan]")
+    claims_df = generate_synthetic_claims(
+        df_name_prefix,
+        num_claims=100,
+        seed=42,
+        num_of_payors=2,
+        num_of_providers=1,
+        num_of_diagnosis_codes=10,
+        num_of_procedure_codes=1,
+        specialties=["General Surgery"],
+    )
+    run_random_forest_and_score_data(df_name_prefix, claims_df)
+    c.print(f"\n[bold green]End of {df_name_prefix} scenario *************************************[/bold green]")
+
+
+@logger.catch
+def run_standard_scenario_01():
+    c = Console()
+    df_name_prefix = "STANDARD_SCENARIO_01"
+    c.print(f"\n[bold green]Running {df_name_prefix} scenario *************************************[/bold green]")
+    c.print("\t[bold cyan]Expecting LOS, Diag Codes, and Payors to be important features[/bold cyan]")
+    claims_df = generate_synthetic_claims(
+        df_name_prefix,
+        num_claims=1000,
+        seed=42,
+        num_of_payors=10,
+        num_of_providers=25,
+        num_of_diagnosis_codes=10,
+        num_of_procedure_codes=19,
+        specialties=["General Surgery"],
+    )
+    run_random_forest_and_score_data(df_name_prefix, claims_df)
+    c.print(f"\n[bold green]End of {df_name_prefix} scenario *************************************[/bold green]")
 
 
 if __name__ == "__main__":
@@ -436,5 +480,5 @@ if __name__ == "__main__":
     os.makedirs("plots", exist_ok=True)
 
     run_simple_scenario()
-
     run_less_simple_scenario()
+    run_even_less_simple_scenario()
