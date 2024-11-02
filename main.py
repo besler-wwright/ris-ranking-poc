@@ -313,7 +313,7 @@ def train_and_evaluate_random_forest_model(data, features):
     return model, scaler, feature_importance, X_test, y_test, y_pred_proba
 
 
-def score_random_forest_data(df_name_prefix, model_name, claims_df, rework_prob, impact_score, priority_score):
+def score_random_forest_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score):
     scored_claims = claims_df.copy()
     scored_claims["rework_probability"] = rework_prob
     scored_claims["impact_score"] = impact_score
@@ -340,7 +340,7 @@ def score_random_forest_data(df_name_prefix, model_name, claims_df, rework_prob,
     scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
 
     # Save scored claims to CSV
-    csv_filename = f"data/{df_name_prefix}_{model_name}_scored_medical_claims.csv"
+    csv_filename = f"data/{df_name_prefix}_random_forest_scored_medical_claims.csv"
     scored_claims_sorted.to_csv(csv_filename, index=False)
     c.print(f"\t[green]{df_name_prefix} scored data saved to {csv_filename}[/green]")
     return scored_claims_sorted
@@ -377,7 +377,7 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
     feature_importance, rework_prob, impact_score, priority_score = run_random_forest_model(claims_df)
 
     # Add scores to the original dataframe
-    scored_claims_sorted = score_random_forest_data(df_name_prefix, "RandomForest", claims_df, rework_prob, impact_score, priority_score)
+    scored_claims_sorted = score_random_forest_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score)
 
     # Print summary statistics and top priority claims
     c.print("\n[bold green]-----Feature Importance:[/bold green]--------------------------------")
