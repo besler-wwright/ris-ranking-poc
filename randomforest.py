@@ -104,9 +104,9 @@ def generate_synthetic_claims(
     df_name_prefix="MyData",
     num_claims=1000,
     seed=42,
-    num_of_providers=1,
-    num_of_diagnosis_codes=1,
-    num_of_procedure_codes=1,
+    num_of_providers=50,
+    num_of_diagnosis_codes=30,
+    num_of_procedure_codes=40,
     specialties=["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"],
     should_display_stats=False,
 ):
