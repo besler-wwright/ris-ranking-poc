@@ -480,5 +480,6 @@ if __name__ == "__main__":
     os.makedirs("plots", exist_ok=True)
 
     run_simple_scenario()
-    run_less_simple_scenario()
-    run_even_less_simple_scenario()
+    # run_less_simple_scenario()
+    # run_even_less_simple_scenario()
+    # run_standard_scenario_01()
