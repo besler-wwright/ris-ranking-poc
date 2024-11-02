@@ -275,7 +275,11 @@ def train_and_evaluate_random_forest_model(data, features):
     model.fit(X_train_scaled, y_train)
 
     # Get feature importance
-    feature_importance = pd.DataFrame({"feature": features, "importance": model.feature_importances_}).sort_values("importance", ascending=False)
+    feature_importance = pd.DataFrame({
+        "feature": features, 
+        "importance": model.feature_importances_
+    })
+    feature_importance = feature_importance[feature_importance["importance"] > 0].sort_values("importance", ascending=False)
 
     # Get predictions
     y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
