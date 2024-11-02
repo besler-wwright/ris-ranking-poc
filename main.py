@@ -385,7 +385,7 @@ def run_simple_scenario():
         num_of_providers=1,
         num_of_diagnosis_codes=2,
         num_of_procedure_codes=1,
-        specialties=["General Surgery"],
+        specialties=["Neurology", "General Surgery"],
     )
     run_random_forest_and_score_data(df_name_prefix, claims_df)
 
