@@ -102,7 +102,7 @@ def generate_synthetic_claims(
         np.random.random(num_claims) * 0.02
         +
         # Higher amounts more likely to need rework
-        (df["claim_charges"] > 1000).astype(float) * 0.1
+        (df["claim_charges"] > 2000).astype(float) * 0.1
         +
         # Certain procedures more likely to need rework
         (df["procedure_code"].isin(["CPT0001", "CPT0002", "CPT0003"])).astype(float) * 0.15
@@ -183,62 +183,6 @@ def prepare_features(df):
     return data, features
 
 
-def train_and_evaluate_random_forest_model(data, features):
-    """
-    Train the model and evaluate its performance.
-    """
-    X = data[features]
-    y = data["needs_rework"]
-
-    # Split the data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Scale features
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-
-    # Train model
-    model = RandomForestClassifier(n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=42)
-    model.fit(X_train_scaled, y_train)
-
-    # Get feature importance
-    feature_importance = pd.DataFrame({"feature": features, "importance": model.feature_importances_})
-    feature_importance = feature_importance[feature_importance["importance"] > 0].sort_values("importance", ascending=False)
-
-    # Get predictions
-    y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
-
-    return model, scaler, feature_importance, X_test, y_test, y_pred_proba
-
-
-def calculate_priority_scores(data, model, scaler, features):
-    """
-    Calculate priority scores combining rework probability and potential impact.
-    """
-    X = data[features]
-    X_scaled = scaler.transform(X)
-
-    # Get rework probabilities
-    rework_prob = model.predict_proba(X_scaled)[:, 1]
-
-    # Calculate expected impact based on both payment difference and LOS difference
-    avg_payment_impact = abs(data["payment_difference"]).mean()
-    avg_los_impact = abs(data["los_difference"]).mean()
-
-    # Normalize payment and LOS impacts to 0-1 scale
-    normalized_payment_impact = abs(data["payment_difference"]) / abs(data["payment_difference"]).max()
-    normalized_los_impact = abs(data["los_difference"]) / abs(data["los_difference"]).max()
-
-    # Combined impact score (weighted average of payment and LOS impact)
-    impact_score = normalized_payment_impact * 0.7 + normalized_los_impact * 0.3
-
-    # Calculate final priority score
-    priority_score = rework_prob * 0.6 + impact_score * 0.4
-
-    return rework_prob, impact_score, priority_score
-
-
 def display_stats_for_df(df):
     """
     Display various statistics for a given DataFrame containing claims data.
@@ -270,6 +214,62 @@ def display_stats_for_df(df):
 
     c.print("\n[black]-----Correlation between LOS difference and rework:[/black]-------------------")
     c.print(df["los_difference"].abs().corr(df["needs_rework"]))
+
+
+def calculate_priority_scores(data, model, scaler, features):
+    """
+    Calculate priority scores combining rework probability and potential impact.
+    """
+    X = data[features]
+    X_scaled = scaler.transform(X)
+
+    # Get rework probabilities
+    rework_prob = model.predict_proba(X_scaled)[:, 1]
+
+    # Calculate expected impact based on both payment difference and LOS difference
+    avg_payment_impact = abs(data["payment_difference"]).mean()
+    avg_los_impact = abs(data["los_difference"]).mean()
+
+    # Normalize payment and LOS impacts to 0-1 scale
+    normalized_payment_impact = abs(data["payment_difference"]) / abs(data["payment_difference"]).max()
+    normalized_los_impact = abs(data["los_difference"]) / abs(data["los_difference"]).max()
+
+    # Combined impact score (weighted average of payment and LOS impact)
+    impact_score = normalized_payment_impact * 0.7 + normalized_los_impact * 0.3
+
+    # Calculate final priority score
+    priority_score = rework_prob * 0.6 + impact_score * 0.4
+
+    return rework_prob, impact_score, priority_score
+
+
+def train_and_evaluate_random_forest_model(data, features):
+    """
+    Train the model and evaluate its performance.
+    """
+    X = data[features]
+    y = data["needs_rework"]
+
+    # Split the data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Train model
+    model = RandomForestClassifier(n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=42)
+    model.fit(X_train_scaled, y_train)
+
+    # Get feature importance
+    feature_importance = pd.DataFrame({"feature": features, "importance": model.feature_importances_})
+    feature_importance = feature_importance[feature_importance["importance"] > 0].sort_values("importance", ascending=False)
+
+    # Get predictions
+    y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+
+    return model, scaler, feature_importance, X_test, y_test, y_pred_proba
 
 
 def score_random_forest_data(df_name_prefix, model_name, claims_df, rework_prob, impact_score, priority_score):
@@ -344,7 +344,9 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
 
     c.print("\n[black]-----Top 10 Priority Claims:[/black]--------------------------------")
     c.print(
-        scored_claims_sorted[["claim_id", "diagnosis_code", "claim_charges", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(
+        scored_claims_sorted[
+            ["claim_id", "diagnosis_code", "procedure_code", "claim_charges", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]
+        ].head(  # noqa
             10
         )
     )
