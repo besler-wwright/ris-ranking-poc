@@ -45,21 +45,21 @@ def generate_synthetic_claims(
     # if num_of_diagnosis_codes < 2:
     #     raise ValueError("num_of_diagnosis_codes must be at least 2 to ensure proper data variation")
 
+    c.print(f"\n\n[bold green]Generating {df_name_prefix} dataset...[/bold green]")
+    np.random.seed(seed)
+
     csv_filename = f"data/{df_name_prefix}__synthesized_medical_claims.csv"
 
     # Try to load existing file
     if os.path.exists(csv_filename):
         existing_df = pd.read_csv(csv_filename)
         if len(existing_df) == num_claims:
-            c.print(f"[yellow]Loading existing dataset from {csv_filename}[/yellow]")
+            c.print(f"[green]Loading existing dataset of {num_claims} claims from {csv_filename}[/green]")
             # Convert date_submitted back to datetime
             existing_df["date_submitted"] = pd.to_datetime(existing_df["date_submitted"])
             return existing_df
         else:
-            c.print(f"[yellow]Existing dataset has different number of claims ({len(existing_df)} vs {num_claims}). Generating new dataset...[/yellow]")
-
-    c.print(f"\n\n[bold green]Generating {df_name_prefix} dataset...[/bold green]")
-    np.random.seed(seed)
+            c.print(f"[yellow]Existing dataset has different number of claims ({len(existing_df)} vs {num_claims}). Generating BRAND NEW dataset[/yellow]")
 
     # Create lists for categorical variables
     provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, num_of_providers + 1)]  # 50 providers
@@ -82,37 +82,20 @@ def generate_synthetic_claims(
         else:
             diagnosis_los[dx_code] = np.round(np.random.uniform(1, 4), 1)
 
-    # Generate procedure-diagnosis combination specific charges
+    # Generate procedure-diagnosis-payor combination specific charges
     proc_dx_charges = {}
     for proc_code in procedure_codes:
         for dx_code in diagnosis_codes:
             for payor_id in payor_ids:
                 base_charge = np.random.uniform(1000, 9000)
-                # multiplier = np.random.uniform(0.8, 1.2)
                 multiplier = np.random.uniform(0.8, 1 + (num_of_payors * 0.1))
-                # # Base charge depends on procedure complexity
-                # if proc_code.startswith("CPT00"):  # Complex procedures
-                #     base_charge = np.random.uniform(4000, 5000)
-                # elif proc_code.startswith("CPT01"):  # Medium procedures
-                #     base_charge = np.random.uniform(2500, 4000)
-                # else:  # Simpler procedures
-                #     base_charge = np.random.uniform(1000, 2500)
-
-                # # Adjust charge based on diagnosis complexity
-                # if dx_code.startswith("ICD00"):  # Complex conditions
-                #     multiplier = np.random.uniform(1.2, 1.4)
-                # elif dx_code.startswith("ICD01"):  # Moderate conditions
-                #     multiplier = np.random.uniform(1.0, 1.2)
-                # else:  # Less complex conditions
-                #     multiplier = np.random.uniform(0.8, 1.0)
-
                 proc_dx_charges[(proc_code, dx_code, payor_id)] = round(base_charge * multiplier, 2)
 
-    # Generate base data
-    # Generate procedure codes first
     procedure_code_list = np.random.choice(procedure_codes, num_claims)
+    dx_code_list = np.random.choice(diagnosis_codes, num_claims)
     payer_id_list = np.random.choice(payor_ids, num_claims)
 
+    # Generate base data
     data = {
         "claim_id": [f"CLM{str(i).zfill(6)}" for i in range(1, num_claims + 1)],
         "date_submitted": [(datetime(2024, 1, 1) + timedelta(days=np.random.randint(0, 365))).strftime("%Y-%m-%d") for _ in range(num_claims)],
@@ -121,11 +104,7 @@ def generate_synthetic_claims(
         "provider_specialty": np.random.choice(specialties, num_claims),
         "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
         "procedure_code": procedure_code_list,
-        "claim_charges": [
-            proc_dx_charges[(p_code, d_code, p_id)]
-            # for p_code, d_code, p_id in zip(procedure_code_list, np.random.choice(diagnosis_codes, num_claims), np.random.choice(payor_ids, num_claims))
-            for p_code, d_code, p_id in zip(procedure_code_list, np.random.choice(diagnosis_codes, num_claims), payer_id_list)
-        ],
+        "claim_charges": [proc_dx_charges[(p_code, d_code, p_id)] for p_code, d_code, p_id in zip(procedure_code_list, dx_code_list, payer_id_list)],
     }
 
     # Add derived features that might influence rework probability
