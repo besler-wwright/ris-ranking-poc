@@ -59,16 +59,27 @@ def generate_synthetic_claims(
         else:  # Less complex conditions
             diagnosis_los[dx_code] = np.round(np.random.uniform(1, 4), 1)
 
-    # Generate procedure-specific charges
-    procedure_charges = {}
+    # Generate procedure-diagnosis combination specific charges
+    proc_dx_charges = {}
     for proc_code in procedure_codes:
-        # Different procedures have different costs
-        if proc_code.startswith("CPT00"):  # Complex procedures
-            procedure_charges[proc_code] = round(np.random.uniform(4000, 5000), 2)
-        elif proc_code.startswith("CPT01"):  # Medium procedures
-            procedure_charges[proc_code] = round(np.random.uniform(2500, 4000), 2)
-        else:  # Simpler procedures
-            procedure_charges[proc_code] = round(np.random.uniform(1000, 2500), 2)
+        for dx_code in diagnosis_codes:
+            # Base charge depends on procedure complexity
+            if proc_code.startswith("CPT00"):  # Complex procedures
+                base_charge = np.random.uniform(4000, 5000)
+            elif proc_code.startswith("CPT01"):  # Medium procedures
+                base_charge = np.random.uniform(2500, 4000)
+            else:  # Simpler procedures
+                base_charge = np.random.uniform(1000, 2500)
+                
+            # Adjust charge based on diagnosis complexity
+            if dx_code.startswith("ICD00"):  # Complex conditions
+                multiplier = np.random.uniform(1.2, 1.4)
+            elif dx_code.startswith("ICD01"):  # Moderate conditions
+                multiplier = np.random.uniform(1.0, 1.2)
+            else:  # Less complex conditions
+                multiplier = np.random.uniform(0.8, 1.0)
+                
+            proc_dx_charges[(proc_code, dx_code)] = round(base_charge * multiplier, 2)
 
     # Generate base data
     # Generate procedure codes first
@@ -81,7 +92,7 @@ def generate_synthetic_claims(
         "provider_specialty": np.random.choice(specialties, num_claims),
         "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
         "procedure_code": procedure_code_list,
-        "claim_charges": [procedure_charges[code] for code in procedure_code_list],
+        "claim_charges": [proc_dx_charges[(p_code, d_code)] for p_code, d_code in zip(data["procedure_code"], data["diagnosis_code"])],
     }
 
     # Add derived features that might influence rework probability
