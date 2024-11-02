@@ -270,6 +270,10 @@ def train_and_evaluate_random_forest_model(data, features):
     X = data[features]
     y = data["needs_rework"]
 
+    # Check if we have enough variation in the target variable
+    if len(np.unique(y)) < 2:
+        raise ValueError("Target variable 'needs_rework' has only one class. Need both positive and negative examples for training.")
+
     # Split the data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -384,10 +388,10 @@ claims_df = generate_synthetic_claims(
     df_name_prefix,
     num_claims=1000,
     seed=42,
-    num_of_providers=1,
-    num_of_diagnosis_codes=1,
-    num_of_procedure_codes=1,
-    specialties=["General Surgery"],
+    num_of_providers=5,
+    num_of_diagnosis_codes=5,
+    num_of_procedure_codes=5,
+    specialties=["Internal Med", "General Surgery"],
 )
 run_random_forest_and_score_data(df_name_prefix, claims_df)
 
