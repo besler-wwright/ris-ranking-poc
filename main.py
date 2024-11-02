@@ -49,6 +49,7 @@ def generate_synthetic_claims(
 
     # Create lists for categorical variables
     provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, num_of_providers + 1)]  # 50 providers
+    payor_ids = [f"PAY{str(i).zfill(3)}" for i in range(1, 6)]  # 5 payors
     diagnosis_codes = [f"ICD{str(i).zfill(3)}" for i in range(1, num_of_diagnosis_codes + 1)]  # 30 diagnosis codes
     procedure_codes = [f"CPT{str(i).zfill(4)}" for i in range(1, num_of_procedure_codes + 1)]  # 40 procedure codes
 
@@ -96,6 +97,7 @@ def generate_synthetic_claims(
     data = {
         "claim_id": [f"CLM{str(i).zfill(6)}" for i in range(1, num_claims + 1)],
         "date_submitted": [(datetime(2024, 1, 1) + timedelta(days=np.random.randint(0, 365))).strftime("%Y-%m-%d") for _ in range(num_claims)],
+        "payor_id": np.random.choice(payor_ids, num_claims),
         "provider_id": np.random.choice(provider_ids, num_claims),
         "provider_specialty": np.random.choice(specialties, num_claims),
         "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
@@ -164,6 +166,7 @@ def generate_synthetic_claims(
     column_order = [
         "claim_id",
         "date_submitted",
+        "payor_id",
         "diagnosis_code",
         "procedure_code",
         "claim_charges",
