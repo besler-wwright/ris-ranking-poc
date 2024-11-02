@@ -45,6 +45,19 @@ def generate_synthetic_claims(
     # if num_of_diagnosis_codes < 2:
     #     raise ValueError("num_of_diagnosis_codes must be at least 2 to ensure proper data variation")
 
+    csv_filename = f"data/{df_name_prefix}__synthesized_medical_claims.csv"
+
+    # Try to load existing file
+    if os.path.exists(csv_filename):
+        existing_df = pd.read_csv(csv_filename)
+        if len(existing_df) == num_claims:
+            c.print(f"[yellow]Loading existing dataset from {csv_filename}[/yellow]")
+            # Convert date_submitted back to datetime
+            existing_df["date_submitted"] = pd.to_datetime(existing_df["date_submitted"])
+            return existing_df
+        else:
+            c.print(f"[yellow]Existing dataset has different number of claims ({len(existing_df)} vs {num_claims}). Generating new dataset...[/yellow]")
+
     c.print(f"\n\n[bold green]Generating {df_name_prefix} dataset...[/bold green]")
     np.random.seed(seed)
 
