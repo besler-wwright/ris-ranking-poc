@@ -26,80 +26,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
-def train_claim_scoring_model(claims_data, features):
-    """
-    Train a model to score claims based on rework probability and payment impact.
-
-    Parameters:
-    claims_data (pd.DataFrame): DataFrame containing claims data
-    features (list): List of feature columns to use for prediction
-
-    Returns:
-    tuple: (trained_model, scaler, feature_importance)
-    """
-    # Prepare the data
-    X = claims_data[features]
-    y = claims_data["needs_rework"]  # Binary target variable
-
-    # Split the data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Scale the features
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-
-    # Train Random Forest model
-    model = RandomForestClassifier(n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=42)
-    model.fit(X_train_scaled, y_train)
-
-    # Get feature importance
-    feature_importance = pd.DataFrame({"feature": features, "importance": model.feature_importances_}).sort_values("importance", ascending=False)
-
-    return model, scaler, feature_importance
-
-
-def score_claims(model, scaler, new_claims, features):
-    """
-    Score new claims based on rework probability and potential payment impact.
-
-    Parameters:
-    model: Trained model
-    scaler: Fitted StandardScaler
-    new_claims (pd.DataFrame): New claims to score
-    features (list): List of feature columns used in training
-
-    Returns:
-    pd.DataFrame: Original claims data with priority scores
-    """
-    # Scale the features
-    X_new_scaled = scaler.transform(new_claims[features])
-
-    # Get probability of rework needed
-    rework_prob = model.predict_proba(X_new_scaled)[:, 1]
-
-    # Calculate expected payment impact
-    # Using historical average payment difference for reworked claims
-    avg_payment_diff = new_claims["payment_difference"].mean()
-    expected_impact = rework_prob * avg_payment_diff
-
-    # Calculate priority score (combining probability and impact)
-    # Normalize both components to 0-1 scale
-    normalized_prob = rework_prob / rework_prob.max()
-    normalized_impact = expected_impact / expected_impact.max()
-
-    # Combine scores (equal weight to probability and impact)
-    priority_score = (normalized_prob + normalized_impact) / 2
-
-    # Add scores to the claims data
-    scored_claims = new_claims.copy()
-    scored_claims["rework_probability"] = rework_prob
-    scored_claims["expected_impact"] = expected_impact
-    scored_claims["priority_score"] = priority_score
-
-    return scored_claims.sort_values("priority_score", ascending=False)
-
-
 def generate_synthetic_claims(
     df_name_prefix="MyData",
     num_claims=1000,
@@ -227,7 +153,7 @@ def generate_synthetic_claims(
     df = df[column_order]
 
     # Save to CSV
-    csv_filename = f"data/{df_name_prefix}_synthesized_medical_claims.csv"
+    csv_filename = f"data/{df_name_prefix}__synthesized_medical_claims.csv"
     df.to_csv(csv_filename, index=False)
     c.print(f"[green]{df_name_prefix} Saved to {csv_filename}.[/green]")
 
@@ -313,7 +239,7 @@ def calculate_priority_scores(data, model, scaler, features):
     return rework_prob, impact_score, priority_score
 
 
-def display_stats_for_df(claims_df):
+def display_stats_for_df(df):
     """
     Display various statistics for a given DataFrame containing claims data.
 
@@ -334,19 +260,19 @@ def display_stats_for_df(claims_df):
 
     c = Console()
     c.print("\n[black]-----First few rows of the dataset:[/black]--------------------------------------")
-    c.print(claims_df.head())
+    c.print(df.head())
 
     # c.print("\nSummary statistics:")
     # c.print(claims_df.describe())
 
     c.print("\n[black]-----LOS statistics by procedure type:[/black]--------------------------------")
-    c.print(claims_df.groupby("procedure_code")[["avg_los", "actual_los", "los_difference"]].mean())
+    c.print(df.groupby("procedure_code")[["avg_los", "actual_los", "los_difference"]].mean())
 
     c.print("\n[black]-----Correlation between LOS difference and rework:[/black]-------------------")
-    c.print(claims_df["los_difference"].abs().corr(claims_df["needs_rework"]))
+    c.print(df["los_difference"].abs().corr(df["needs_rework"]))
 
 
-def score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score):
+def score_random_forest_data(df_name_prefix, model_name, claims_df, rework_prob, impact_score, priority_score):
     scored_claims = claims_df.copy()
     scored_claims["rework_probability"] = rework_prob
     scored_claims["impact_score"] = impact_score
@@ -373,7 +299,7 @@ def score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_sc
     scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
 
     # Save scored claims to CSV
-    csv_filename = f"data/{df_name_prefix}_scored_medical_claims.csv"
+    csv_filename = f"data/{df_name_prefix}_{model_name}_scored_medical_claims.csv"
     scored_claims_sorted.to_csv(csv_filename, index=False)
     c.print(f"[green]{df_name_prefix} Scored Data Saved to {csv_filename}.[/green]")
     return scored_claims_sorted
@@ -410,7 +336,7 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
     feature_importance, rework_prob, impact_score, priority_score = run_random_forest_model(claims_df)
 
     # Add scores to the original dataframe
-    scored_claims_sorted = score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score)
+    scored_claims_sorted = score_random_forest_data(df_name_prefix, "RandomForest", claims_df, rework_prob, impact_score, priority_score)
 
     # Print summary statistics and top priority claims
     c.print("\n[bold green]-----Feature Importance:[/bold green]--------------------------------")
