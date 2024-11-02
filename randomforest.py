@@ -1,3 +1,4 @@
+import csv
 import os
 
 from rich.console import Console
@@ -107,6 +108,7 @@ def generate_synthetic_claims(
     num_of_diagnosis_codes=1,
     num_of_procedure_codes=1,
     specialties=["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"],
+    should_display_stats=False,
 ):
     """
     Generate synthetic medical claims data with realistic patterns.
@@ -225,7 +227,10 @@ def generate_synthetic_claims(
     # Save to CSV
     csv_filename = f"data/{df_name_prefix}_synthesized_medical_claims.csv"
     df.to_csv(csv_filename, index=False)
-    display_stats_for_df(df)
+    c.print(f"[bold green]{df_name_prefix} Saved to {csv_filename}.[/bold green]")
+
+    if should_display_stats:
+        display_stats_for_df(df)
 
     return df
 
@@ -365,11 +370,13 @@ def score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_sc
     scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
 
     # Save scored claims to CSV
-    scored_claims_sorted.to_csv(f"data/{df_name_prefix}_scored_medical_claims.csv", index=False)
+    csv_filename = f"data/{df_name_prefix}_scored_medical_claims.csv"
+    scored_claims_sorted.to_csv(csv_filename, index=False)
+    c.print(f"[green]{df_name_prefix}Scored Data Saved to {csv_filename}.[/green]")
     return scored_claims_sorted
 
 
-def run_random_forest_model(claims_df):
+def run_random_forest_model(claims_df, should_display_stats=False):
     c = Console()
 
     # prepare the data
@@ -381,13 +388,16 @@ def run_random_forest_model(claims_df):
     # Calculate priority scores for all claims
     rework_prob, impact_score, priority_score = calculate_priority_scores(prepared_data, model, scaler, features)
 
-    # Print prediction distributions
     predictions = (y_pred_proba > 0.5).astype(int)
-    c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
-    c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
 
-    c.print("\nModel Performance:")
-    c.print(classification_report(y_test, predictions, zero_division=0))
+    # Print prediction distributions
+    if should_display_stats:
+        c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
+        c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
+
+        c.print("\nModel Performance:")
+        c.print(classification_report(y_test, predictions, zero_division=0))
+
     return feature_importance, rework_prob, impact_score, priority_score
 
 
