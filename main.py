@@ -1,6 +1,7 @@
 import csv
 import os
 
+from loguru import logger
 from rich.console import Console
 
 # Initialize console and environment
@@ -26,6 +27,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
+@logger.catch
 def generate_synthetic_claims(
     df_name_prefix="MyData",
     num_claims=1000,
@@ -74,7 +76,7 @@ def generate_synthetic_claims(
                 base_charge = np.random.uniform(2500, 4000)
             else:  # Simpler procedures
                 base_charge = np.random.uniform(1000, 2500)
-                
+
             # Adjust charge based on diagnosis complexity
             if dx_code.startswith("ICD00"):  # Complex conditions
                 multiplier = np.random.uniform(1.2, 1.4)
@@ -82,7 +84,7 @@ def generate_synthetic_claims(
                 multiplier = np.random.uniform(1.0, 1.2)
             else:  # Less complex conditions
                 multiplier = np.random.uniform(0.8, 1.0)
-                
+
             proc_dx_charges[(proc_code, dx_code)] = round(base_charge * multiplier, 2)
 
     # Generate base data
@@ -178,6 +180,7 @@ def generate_synthetic_claims(
     return df
 
 
+@logger.catch
 def prepare_features(df):
     """
     Prepare features for the model, including encoding and feature engineering.
@@ -198,6 +201,7 @@ def prepare_features(df):
     return data, features
 
 
+@logger.catch
 def display_stats_for_df(df):
     """
     Display various statistics for a given DataFrame containing claims data.
@@ -231,6 +235,7 @@ def display_stats_for_df(df):
     c.print(df["los_difference"].abs().corr(df["needs_rework"]))
 
 
+@logger.catch
 def calculate_priority_scores(data, model, scaler, features):
     """
     Calculate priority scores combining rework probability and potential impact.
@@ -345,6 +350,7 @@ def run_random_forest_model(claims_df, should_display_stats=False):
     return feature_importance, rework_prob, impact_score, priority_score
 
 
+@logger.catch
 def run_random_forest_and_score_data(df_name_prefix, claims_df):
     c = Console()
     # Model the data
