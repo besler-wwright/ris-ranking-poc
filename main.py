@@ -41,8 +41,8 @@ def generate_synthetic_claims(
     Generate synthetic medical claims data with realistic patterns.
     """
     # Add validation at the start of the function
-    if num_of_diagnosis_codes < 2:
-        raise ValueError("num_of_diagnosis_codes must be at least 2 to ensure proper data variation")
+    # if num_of_diagnosis_codes < 2:
+    #     raise ValueError("num_of_diagnosis_codes must be at least 2 to ensure proper data variation")
 
     c.print(f"\n\n[bold green]Generating {df_name_prefix} dataset...[/bold green]")
     np.random.seed(seed)
@@ -116,15 +116,19 @@ def generate_synthetic_claims(
     df["los_difference"] = (df["actual_los"] - df["avg_los"]).round(1)
 
     # Generate 'needs_rework' based on various factors including LOS
+    # Base probability
+    if num_of_diagnosis_codes < 2:
+        base = np.random.random(num_claims) * 0.1
+    else:
+        base = np.random.random(num_claims) * 0.02
     rework_probabilities = (
-        # Base probability
-        np.random.random(num_claims) * 0.02
+        base
         +
         # Higher amounts more likely to need rework
         (df["claim_charges"] > 2000).astype(float) * 0.1
         +
         # Certain procedures more likely to need rework
-        (df["procedure_code"].isin(["CPT0001", "CPT0002", "CPT0003"])).astype(float) * 0.15
+        (df["procedure_code"].isin(["CPT0001", "CPT0003", "CPT0005"])).astype(float) * 0.15
         +
         # Certain providers more likely to need rework
         (df["provider_id"].isin(["PRV0001", "PRV0002"])).astype(float) * 0.2
@@ -141,7 +145,9 @@ def generate_synthetic_claims(
 
     # Payment difference is related to original claim amount and LOS difference
     df.loc[rework_mask, "payment_difference"] = df.loc[rework_mask, "claim_charges"] * (
-        np.random.uniform(-0.3, 0.3, size=rework_mask.sum()) + df.loc[rework_mask, "los_difference"] * 0.05
+        # np.random.uniform(-0.3, 0.3, size=rework_mask.sum()) +
+        df.loc[rework_mask, "los_difference"]
+        * 0.1
     )  # LOS difference affects payment
 
     # Round monetary values to 2 decimal places
@@ -383,9 +389,9 @@ def run_simple_scenario():
         num_claims=1000,
         seed=42,
         num_of_providers=1,
-        num_of_diagnosis_codes=2,
+        num_of_diagnosis_codes=1,
         num_of_procedure_codes=1,
-        specialties=["Neurology", "General Surgery"],
+        specialties=["Neurology"],
     )
     run_random_forest_and_score_data(df_name_prefix, claims_df)
 
