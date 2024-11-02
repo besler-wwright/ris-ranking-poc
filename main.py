@@ -50,25 +50,25 @@ def generate_synthetic_claims(
 
     # Generate diagnosis-specific average LOS
     diagnosis_los = {}
-    for code in diagnosis_codes:
+    for dx_code in diagnosis_codes:
         # Different diagnoses have different typical LOS
-        if code.startswith("ICD00"):  # Complex conditions
-            diagnosis_los[code] = np.round(np.random.uniform(5, 10), 1)
-        elif code.startswith("ICD01"):  # Moderate conditions
-            diagnosis_los[code] = np.round(np.random.uniform(3, 6), 1)
+        if dx_code.startswith("ICD00"):  # Complex conditions
+            diagnosis_los[dx_code] = np.round(np.random.uniform(5, 10), 1)
+        elif dx_code.startswith("ICD01"):  # Moderate conditions
+            diagnosis_los[dx_code] = np.round(np.random.uniform(3, 6), 1)
         else:  # Less complex conditions
-            diagnosis_los[code] = np.round(np.random.uniform(1, 4), 1)
+            diagnosis_los[dx_code] = np.round(np.random.uniform(1, 4), 1)
 
     # Generate procedure-specific charges
     procedure_charges = {}
-    for code in procedure_codes:
+    for proc_code in procedure_codes:
         # Different procedures have different costs
-        if code.startswith("CPT00"):  # Complex procedures
-            procedure_charges[code] = round(np.random.uniform(4000, 5000), 2)
-        elif code.startswith("CPT01"):  # Medium procedures
-            procedure_charges[code] = round(np.random.uniform(2500, 4000), 2)
+        if proc_code.startswith("CPT00"):  # Complex procedures
+            procedure_charges[proc_code] = round(np.random.uniform(4000, 5000), 2)
+        elif proc_code.startswith("CPT01"):  # Medium procedures
+            procedure_charges[proc_code] = round(np.random.uniform(2500, 4000), 2)
         else:  # Simpler procedures
-            procedure_charges[code] = round(np.random.uniform(1000, 2500), 2)
+            procedure_charges[proc_code] = round(np.random.uniform(1000, 2500), 2)
 
     # Generate base data
     # Generate procedure codes first
