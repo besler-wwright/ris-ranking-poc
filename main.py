@@ -92,7 +92,7 @@ def generate_synthetic_claims(
         "provider_specialty": np.random.choice(specialties, num_claims),
         "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
         "procedure_code": procedure_code_list,
-        "claim_charges": [proc_dx_charges[(p_code, d_code)] for p_code, d_code in zip(data["procedure_code"], data["diagnosis_code"])],
+        "claim_charges": [proc_dx_charges[(p_code, d_code)] for p_code, d_code in zip(procedure_code_list, np.random.choice(diagnosis_codes, num_claims))],
     }
 
     # Add derived features that might influence rework probability
