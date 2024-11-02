@@ -464,7 +464,7 @@ def run_standard_scenario_01():
         num_claims=1000,
         seed=42,
         num_of_payors=10,
-        num_of_providers=25,
+        num_of_providers=5,
         num_of_diagnosis_codes=10,
         num_of_procedure_codes=19,
         specialties=["General Surgery"],
@@ -480,6 +480,6 @@ if __name__ == "__main__":
     os.makedirs("plots", exist_ok=True)
 
     run_simple_scenario()
-    # run_less_simple_scenario()
-    # run_even_less_simple_scenario()
-    # run_standard_scenario_01()
+    run_less_simple_scenario()
+    run_even_less_simple_scenario()
+    run_standard_scenario_01()
