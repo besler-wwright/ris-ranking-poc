@@ -100,6 +100,7 @@ def score_claims(model, scaler, new_claims, features):
 
 
 def generate_synthetic_claims(
+    df_name_prefix="MyData",
     num_claims=1000,
     seed=42,
     num_of_providers=1,
@@ -221,6 +222,11 @@ def generate_synthetic_claims(
     ]
     df = df[column_order]
 
+    # Save to CSV
+    csv_filename = f"data/{df_name_prefix}_synthesized_medical_claims.csv"
+    df.to_csv(csv_filename, index=False)
+    display_stats_for_df(df)
+
     return df
 
 
@@ -244,7 +250,7 @@ def prepare_features(df):
     return data, features
 
 
-def train_and_evaluate_model(data, features):
+def train_and_evaluate_random_forest_model(data, features):
     """
     Train the model and evaluate its performance.
     """
@@ -363,6 +369,49 @@ def score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_sc
     return scored_claims_sorted
 
 
+def run_random_forest_model(claims_df):
+    c = Console()
+
+    # prepare the data
+    prepared_data, features = prepare_features(claims_df)
+
+    # Train and evaluate the model
+    model, scaler, feature_importance, X_test, y_test, y_pred_proba = train_and_evaluate_random_forest_model(prepared_data, features)
+
+    # Calculate priority scores for all claims
+    rework_prob, impact_score, priority_score = calculate_priority_scores(prepared_data, model, scaler, features)
+
+    # Print prediction distributions
+    predictions = (y_pred_proba > 0.5).astype(int)
+    c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
+    c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
+
+    c.print("\nModel Performance:")
+    c.print(classification_report(y_test, predictions, zero_division=0))
+    return feature_importance, rework_prob, impact_score, priority_score
+
+
+def run_random_forest_and_score_data(df_name_prefix, claims_df):
+    c = Console()
+    # Model the data
+    feature_importance, rework_prob, impact_score, priority_score = run_random_forest_model(claims_df)
+
+    # Add scores to the original dataframe
+    scored_claims_sorted = score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score)
+
+    # Print summary statistics and top priority claims
+    c.print("\n[bold green]-----Feature Importance:[/bold green]--------------------------------")
+    c.print(feature_importance)
+
+    c.print("\n[black]-----Top 10 Priority Claims:[/black]--------------------------------")
+    c.print(
+        scored_claims_sorted[["claim_id", "diagnosis_code", "claim_charges", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(
+            10
+        )
+    )
+
+
+# Start ---------------------------------------
 os.makedirs("data", exist_ok=True)
 os.makedirs("plots", exist_ok=True)
 
@@ -370,6 +419,7 @@ os.makedirs("plots", exist_ok=True)
 # Generate the dataset
 df_name_prefix = "SIMPLE"
 claims_df = generate_synthetic_claims(
+    df_name_prefix,
     num_claims=100,
     seed=42,
     num_of_providers=1,
@@ -378,35 +428,4 @@ claims_df = generate_synthetic_claims(
     specialties=["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"],
 )
 
-# Save to CSV
-csv_filename = f"data/{df_name_prefix}_synthesized_medical_claims.csv"
-claims_df.to_csv(csv_filename, index=False)
-display_stats_for_df(claims_df)
-
-# prepare the data
-prepared_data, features = prepare_features(claims_df)
-
-# Train and evaluate the model
-model, scaler, feature_importance, X_test, y_test, y_pred_proba = train_and_evaluate_model(prepared_data, features)
-
-# Calculate priority scores for all claims
-rework_prob, impact_score, priority_score = calculate_priority_scores(prepared_data, model, scaler, features)
-
-# Add scores to the original dataframe
-scored_claims_sorted = score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score)
-
-# Print prediction distributions
-predictions = (y_pred_proba > 0.5).astype(int)
-# c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
-# c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
-
-c.print("\nModel Performance:")
-c.print(classification_report(y_test, predictions, zero_division=0))
-
-
-# Print summary statistics and top priority claims
-c.print("\nFeature Importance:")
-c.print(feature_importance)
-
-c.print("\nTop 10 Priority Claims:")
-c.print(scored_claims_sorted[["claim_id", "claim_charges", "rework_probability", "impact_score", "priority_score", "los_difference", "payment_difference"]].head(10))
+run_random_forest_and_score_data(df_name_prefix, claims_df)
