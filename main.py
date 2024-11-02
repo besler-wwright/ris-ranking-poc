@@ -27,7 +27,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
-@logger.catch
 def generate_synthetic_claims(
     df_name_prefix="MyData",
     num_claims=1000,
@@ -180,7 +179,6 @@ def generate_synthetic_claims(
     return df
 
 
-@logger.catch
 def prepare_features(df):
     """
     Prepare features for the model, including encoding and feature engineering.
@@ -201,7 +199,6 @@ def prepare_features(df):
     return data, features
 
 
-@logger.catch
 def display_stats_for_df(df):
     """
     Display various statistics for a given DataFrame containing claims data.
@@ -235,7 +232,6 @@ def display_stats_for_df(df):
     c.print(df["los_difference"].abs().corr(df["needs_rework"]))
 
 
-@logger.catch
 def calculate_priority_scores(data, model, scaler, features):
     """
     Calculate priority scores combining rework probability and potential impact.
@@ -354,7 +350,6 @@ def run_random_forest_model(claims_df, should_display_stats=False):
     return feature_importance, rework_prob, impact_score, priority_score
 
 
-@logger.catch
 def run_random_forest_and_score_data(df_name_prefix, claims_df):
     c = Console()
     # Model the data
@@ -377,32 +372,42 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
     )
 
 
-# Start ---------------------------------------
-os.makedirs("data", exist_ok=True)
-os.makedirs("plots", exist_ok=True)
+@logger.catch
+def run_simple_scenario():
+    df_name_prefix = "SIMPLE"
+    claims_df = generate_synthetic_claims(
+        df_name_prefix,
+        num_claims=1000,
+        seed=42,
+        num_of_providers=1,
+        num_of_diagnosis_codes=2,
+        num_of_procedure_codes=1,
+        specialties=["General Surgery"],
+    )
+    run_random_forest_and_score_data(df_name_prefix, claims_df)
 
 
-# Generate the dataset
-df_name_prefix = "SIMPLE"
-claims_df = generate_synthetic_claims(
-    df_name_prefix,
-    num_claims=1000,
-    seed=42,
-    num_of_providers=5,
-    num_of_diagnosis_codes=5,
-    num_of_procedure_codes=5,
-    specialties=["Internal Med", "General Surgery"],
-)
-run_random_forest_and_score_data(df_name_prefix, claims_df)
+@logger.catch
+def run_less_simple_scenario():
+    df_name_prefix = "LESS_SIMPLE"
+    claims_df = generate_synthetic_claims(
+        df_name_prefix,
+        num_claims=1000,
+        seed=42,
+        num_of_providers=1,
+        num_of_diagnosis_codes=100,
+        num_of_procedure_codes=1,
+        specialties=["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"],
+    )
+    run_random_forest_and_score_data(df_name_prefix, claims_df)
 
-df_name_prefix = "LESS_SIMPLE"
-claims_df = generate_synthetic_claims(
-    df_name_prefix,
-    num_claims=1000,
-    seed=42,
-    num_of_providers=1,
-    num_of_diagnosis_codes=100,
-    num_of_procedure_codes=1,
-    specialties=["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"],
-)
-run_random_forest_and_score_data(df_name_prefix, claims_df)
+
+if __name__ == "__main__":
+
+    # Start ---------------------------------------
+    os.makedirs("data", exist_ok=True)
+    os.makedirs("plots", exist_ok=True)
+
+    run_simple_scenario()
+
+    run_less_simple_scenario()
