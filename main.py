@@ -50,13 +50,17 @@ def generate_synthetic_claims(
 
     # Generate diagnosis-specific average LOS
     diagnosis_los = {}
-    for dx_code in diagnosis_codes:
-        # Different diagnoses have different typical LOS
-        if dx_code.startswith("ICD00"):  # Complex conditions
+    # Calculate the size of each third
+    third_size = len(diagnosis_codes) // 3
+    for i, dx_code in enumerate(diagnosis_codes):
+        # First third: complex conditions
+        if i < third_size:
             diagnosis_los[dx_code] = np.round(np.random.uniform(5, 10), 1)
-        elif dx_code.startswith("ICD01"):  # Moderate conditions
+        # Second third: moderate conditions
+        elif i < third_size * 2:
             diagnosis_los[dx_code] = np.round(np.random.uniform(3, 6), 1)
-        else:  # Less complex conditions
+        # Last third: less complex conditions
+        else:
             diagnosis_los[dx_code] = np.round(np.random.uniform(1, 4), 1)
 
     # Generate procedure-diagnosis combination specific charges
