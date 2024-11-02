@@ -113,6 +113,8 @@ def generate_synthetic_claims(
     """
     Generate synthetic medical claims data with realistic patterns.
     """
+
+    c.print(f"\n\n[bold green]Generating {df_name_prefix} dataset...[/bold green]")
     np.random.seed(seed)
 
     # Create lists for categorical variables
@@ -227,7 +229,7 @@ def generate_synthetic_claims(
     # Save to CSV
     csv_filename = f"data/{df_name_prefix}_synthesized_medical_claims.csv"
     df.to_csv(csv_filename, index=False)
-    c.print(f"[bold green]{df_name_prefix} Saved to {csv_filename}.[/bold green]")
+    c.print(f"[green]{df_name_prefix} Saved to {csv_filename}.[/green]")
 
     if should_display_stats:
         display_stats_for_df(df)
@@ -275,10 +277,7 @@ def train_and_evaluate_random_forest_model(data, features):
     model.fit(X_train_scaled, y_train)
 
     # Get feature importance
-    feature_importance = pd.DataFrame({
-        "feature": features, 
-        "importance": model.feature_importances_
-    })
+    feature_importance = pd.DataFrame({"feature": features, "importance": model.feature_importances_})
     feature_importance = feature_importance[feature_importance["importance"] > 0].sort_values("importance", ascending=False)
 
     # Get predictions
@@ -376,7 +375,7 @@ def score_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_sc
     # Save scored claims to CSV
     csv_filename = f"data/{df_name_prefix}_scored_medical_claims.csv"
     scored_claims_sorted.to_csv(csv_filename, index=False)
-    c.print(f"[green]{df_name_prefix}Scored Data Saved to {csv_filename}.[/green]")
+    c.print(f"[green]{df_name_prefix} Scored Data Saved to {csv_filename}.[/green]")
     return scored_claims_sorted
 
 
@@ -434,12 +433,23 @@ os.makedirs("plots", exist_ok=True)
 df_name_prefix = "SIMPLE"
 claims_df = generate_synthetic_claims(
     df_name_prefix,
-    num_claims=100,
+    num_claims=1000,
     seed=42,
     num_of_providers=1,
     num_of_diagnosis_codes=1,
     num_of_procedure_codes=1,
+    specialties=["General Surgery"],
+)
+run_random_forest_and_score_data(df_name_prefix, claims_df)
+
+df_name_prefix = "LESS_SIMPLE"
+claims_df = generate_synthetic_claims(
+    df_name_prefix,
+    num_claims=1000,
+    seed=42,
+    num_of_providers=1,
+    num_of_diagnosis_codes=100,
+    num_of_procedure_codes=1,
     specialties=["Internal Med", "Cardiology", "Orthopedics", "Neurology", "General Surgery"],
 )
-
 run_random_forest_and_score_data(df_name_prefix, claims_df)
