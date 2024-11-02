@@ -40,6 +40,9 @@ def generate_synthetic_claims(
     """
     Generate synthetic medical claims data with realistic patterns.
     """
+    # Add validation at the start of the function
+    if num_of_diagnosis_codes < 2:
+        raise ValueError("num_of_diagnosis_codes must be at least 2 to ensure proper data variation")
 
     c.print(f"\n\n[bold green]Generating {df_name_prefix} dataset...[/bold green]")
     np.random.seed(seed)
