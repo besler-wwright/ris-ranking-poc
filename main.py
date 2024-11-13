@@ -255,28 +255,49 @@ def display_stats_for_df(df):
 
 def calculate_priority_scores(data, model, scaler, features):
     """
-    Calculate priority scores combining rework probability and potential impact.
+    Calculate how important each claim is by combining two factors:
+    1. How likely the claim needs rework
+    2. How big an impact rework would have (in terms of time and money)
+    
+    This helps us focus on claims that both:
+    - Have a high chance of needing rework
+    - Would have a significant effect if reworked
     """
+    # Prepare the data for our prediction model
+    # First get just the features we care about
     X = data[features]
+    # Then scale the numbers so they're all comparable
+    # (like converting everything to the same unit of measurement)
     X_scaled = scaler.transform(X)
 
-    # Get rework probabilities
+    # Ask our trained model how likely each claim needs rework
+    # This gives us a probability from 0% to 100%
     rework_prob = model.predict_proba(X_scaled)[:, 1]
 
-    # Calculate expected impact based on both payment difference and LOS difference
-    avg_payment_impact = abs(data["payment_difference"]).mean()
-    avg_los_impact = abs(data["los_difference"]).mean()
+    # Calculate typical impacts we see in the data
+    # This helps us understand what's "normal" vs "unusual"
+    avg_payment_impact = abs(data["payment_difference"]).mean()  # Average money impact
+    avg_los_impact = abs(data["los_difference"]).mean()         # Average time impact
 
-    # Normalize payment and LOS impacts to 0-1 scale
+    # Convert impacts to a 0-1 scale for fair comparison
+    # (like grading on a curve from 0 to 100%)
     normalized_payment_impact = abs(data["payment_difference"]) / abs(data["payment_difference"]).max()
     normalized_los_impact = abs(data["los_difference"]) / abs(data["los_difference"]).max()
 
-    # Combined impact score (weighted average of payment and LOS impact)
+    # Calculate overall impact score
+    # We weight money impact (70%) more than time impact (30%)
+    # because financial impact is usually more critical
     impact_score = normalized_payment_impact * 0.7 + normalized_los_impact * 0.3
 
     # Calculate final priority score
+    # We weight probability of rework (60%) slightly more than impact (40%)
+    # because we want to focus on claims most likely to need attention
     priority_score = rework_prob * 0.6 + impact_score * 0.4
 
+    # Return all three scores for each claim:
+    # 1. How likely it needs rework
+    # 2. How big an impact it might have
+    # 3. Overall priority ranking
     return rework_prob, impact_score, priority_score
 
 
