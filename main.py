@@ -291,7 +291,7 @@ def train_and_evaluate_random_forest_model(data, features):
     if len(np.unique(y)) < 2:
         raise ValueError("Target variable 'needs_rework' has only one class. Need both positive and negative examples for training.")
 
-    # Split the data
+    # Split the data, using 80% of the data for training and 20% for testing, y=Needs Rework as the target variable
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Scale features
@@ -479,7 +479,7 @@ if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
     os.makedirs("plots", exist_ok=True)
 
-    run_simple_scenario()
-    run_less_simple_scenario()
+    # run_simple_scenario()
+    # run_less_simple_scenario()
     run_even_less_simple_scenario()
-    run_standard_scenario_01()
+    # run_standard_scenario_01()
