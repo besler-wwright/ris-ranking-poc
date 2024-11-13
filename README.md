@@ -6,7 +6,7 @@ A proof of concept for ranking medical claims using synthetic data and machine l
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- Python ^3.10 (version 3.10 or higher)
 - Poetry package manager
 
 ### Installation Steps
@@ -95,7 +95,7 @@ The system generates synthetic medical claims and uses a Random Forest model to 
 
 ## Package Management
 
-This project uses Poetry for dependency management. Key Poetry commands:
+This project uses Poetry for dependency management. The dependencies are locked in poetry.lock to ensure consistent installations across environments. Key Poetry commands:
 
 - Add a new package:
   ```bash
