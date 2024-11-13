@@ -39,10 +39,21 @@ def generate_synthetic_claims(
     should_display_stats=False,
 ):
     """
-    Generate synthetic medical claims data with realistic patterns.
+    Creates realistic-looking medical claims data for testing our system.
+    This is like creating a practice dataset that mimics real medical claims
+    so we can test our analysis methods safely.
+
+    The function creates claims with:
+    - Unique claim IDs and dates
+    - Insurance companies (payors) and healthcare providers
+    - Medical diagnoses and procedures
+    - Length of stay information
+    - Cost and payment details
     """
 
     c.print(f"\n[bold green]Generating {df_name_prefix} dataset...[/bold green]")
+    # Set a random seed for consistent results
+    # Like using the same recipe each time to bake a cake
     np.random.seed(seed)
 
     csv_filename = f"data/{df_name_prefix}__synthesized_medical_claims.csv"
@@ -58,98 +69,87 @@ def generate_synthetic_claims(
         else:
             c.print(f"\t[yellow]Existing dataset has different number of claims ({len(existing_df)} vs {num_claims}). Generating BRAND NEW dataset[/yellow]")
 
-    # Create lists for categorical variables
-    provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, num_of_providers + 1)]
-    payor_ids = [f"PAY{str(i).zfill(3)}" for i in range(1, num_of_payors + 1)]
-    diagnosis_codes = [f"ICD{str(i).zfill(3)}" for i in range(1, num_of_diagnosis_codes + 1)]
-    procedure_codes = [f"CPT{str(i).zfill(4)}" for i in range(1, num_of_procedure_codes + 1)]
+    # Create IDs for different parts of the healthcare system
+    provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, num_of_providers + 1)]  # Doctor/Hospital IDs
+    payor_ids = [f"PAY{str(i).zfill(3)}" for i in range(1, num_of_payors + 1)]        # Insurance company IDs
+    diagnosis_codes = [f"ICD{str(i).zfill(3)}" for i in range(1, num_of_diagnosis_codes + 1)]  # Disease codes
+    procedure_codes = [f"CPT{str(i).zfill(4)}" for i in range(1, num_of_procedure_codes + 1)]  # Treatment codes
 
-    # Generate diagnosis-specific average LOS
+    # Create typical hospital stay lengths for different diagnoses
+    # Some conditions need longer stays than others
     diagnosis_los = {}
-    # Calculate the size of each third
     third_size = len(diagnosis_codes) // 3
     for i, dx_code in enumerate(diagnosis_codes):
-        # First third: complex conditions
+        # Complex conditions (like major surgeries): 5-10 days
         if i < third_size:
             diagnosis_los[dx_code] = np.round(np.random.uniform(5, 10), 1)
-        # Second third: moderate conditions
+        # Moderate conditions (like infections): 3-6 days
         elif i < third_size * 2:
             diagnosis_los[dx_code] = np.round(np.random.uniform(3, 6), 1)
-        # Last third: less complex conditions
+        # Simple conditions (like minor procedures): 1-4 days
         else:
             diagnosis_los[dx_code] = np.round(np.random.uniform(1, 4), 1)
 
-    # Generate procedure-diagnosis-payor combination specific charges
+    # Create typical costs for different procedure-diagnosis-insurance combinations
+    # Different insurance companies might pay different amounts for the same procedure
     proc_dx_charges = {}
     for proc_code in procedure_codes:
         for dx_code in diagnosis_codes:
             for payor_id in payor_ids:
-                base_charge = np.random.uniform(1000, 9000)
-                multiplier = np.random.uniform(0.8, 1 + (num_of_payors * 0.1))
+                base_charge = np.random.uniform(1000, 9000)  # Base cost between $1,000 and $9,000
+                multiplier = np.random.uniform(0.8, 1 + (num_of_payors * 0.1))  # Different insurers pay different amounts
                 proc_dx_charges[(proc_code, dx_code, payor_id)] = round(base_charge * multiplier, 2)
 
     procedure_code_list = np.random.choice(procedure_codes, num_claims)
     dx_code_list = np.random.choice(diagnosis_codes, num_claims)
     payer_id_list = np.random.choice(payor_ids, num_claims)
 
-    # Generate base data
+    # Create the basic claim information
     data = {
-        "claim_id": [f"CLM{str(i).zfill(6)}" for i in range(1, num_claims + 1)],
-        "date_submitted": [(datetime(2024, 1, 1) + timedelta(days=np.random.randint(0, 365))).strftime("%Y-%m-%d") for _ in range(num_claims)],
-        "payor_id": np.random.choice(payor_ids, num_claims),
-        "provider_id": np.random.choice(provider_ids, num_claims),
-        "provider_specialty": np.random.choice(specialties, num_claims),
-        "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),
-        "procedure_code": procedure_code_list,
-        "claim_charges": [proc_dx_charges[(p_code, d_code, p_id)] for p_code, d_code, p_id in zip(procedure_code_list, dx_code_list, payer_id_list)],
+        "claim_id": [f"CLM{str(i).zfill(6)}" for i in range(1, num_claims + 1)],  # Unique claim numbers
+        "date_submitted": [(datetime(2024, 1, 1) + timedelta(days=np.random.randint(0, 365))).strftime("%Y-%m-%d") for _ in range(num_claims)],  # Random dates in 2024
+        "payor_id": np.random.choice(payor_ids, num_claims),          # Random insurance company
+        "provider_id": np.random.choice(provider_ids, num_claims),    # Random healthcare provider
+        "provider_specialty": np.random.choice(specialties, num_claims),  # Random doctor specialty
+        "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),  # Random diagnosis
+        "procedure_code": procedure_code_list,                           # Random procedure
+        "claim_charges": [proc_dx_charges[(p_code, d_code, p_id)] for p_code, d_code, p_id in zip(procedure_code_list, dx_code_list, payer_id_list)],  # Look up the cost
     }
 
-    # Add derived features that might influence rework probability
+    # Convert our data into a DataFrame (like a spreadsheet)
     df = pd.DataFrame(data)
 
-    # Add LOS features
-    df["avg_los"] = df["diagnosis_code"].map(diagnosis_los)
+    # Add information about hospital stays
+    df["avg_los"] = df["diagnosis_code"].map(diagnosis_los)  # Expected stay length for each diagnosis
 
-    # Generate actual LOS with some variation around the expected LOS
-    df["actual_los"] = df.apply(lambda row: max(1, np.random.normal(row["avg_los"], row["avg_los"] * 0.2)), axis=1).round(1)  # 20% standard deviation
+    # Create actual length of stay with some natural variation
+    # Real stays might be shorter or longer than expected
+    df["actual_los"] = df.apply(lambda row: max(1, np.random.normal(row["avg_los"], row["avg_los"] * 0.2)), axis=1).round(1)
 
-    # Calculate LOS difference (actual - expected)
+    # Calculate how different the actual stay was from expected
     df["los_difference"] = (df["actual_los"] - df["avg_los"]).round(1)
 
-    # Generate 'needs_rework' based on various factors including LOS
-    # Base probability
-    if num_of_diagnosis_codes < 2:
-        base = np.random.random(num_claims) * 0.1
-    else:
-        base = np.random.random(num_claims) * 0.02
+    # Determine which claims need rework based on various risk factors
+    # More complex cases have higher chances of needing review
+    base = np.random.random(num_claims) * (0.02 if num_of_diagnosis_codes >= 2 else 0.1)
     rework_probabilities = (
         base
-        +
-        # Higher amounts more likely to need rework
-        (df["claim_charges"] > 2000).astype(float) * 0.1
-        +
-        # Certain procedures more likely to need rework
-        (df["procedure_code"].isin(["CPT0001", "CPT0003", "CPT0005"])).astype(float) * 0.15
-        +
-        # Certain providers more likely to need rework
-        (df["provider_id"].isin(["PRV0001", "PRV0002"])).astype(float) * 0.2
-        +
-        # LOS difference increases rework probability
-        (abs(df["los_difference"]) > 2).astype(float) * 0.2
+        + (df["claim_charges"] > 2000).astype(float) * 0.1           # Higher costs increase risk
+        + (df["procedure_code"].isin(["CPT0001", "CPT0003", "CPT0005"])).astype(float) * 0.15  # Certain procedures are riskier
+        + (df["provider_id"].isin(["PRV0001", "PRV0002"])).astype(float) * 0.2   # Some providers have higher error rates
+        + (abs(df["los_difference"]) > 2).astype(float) * 0.2        # Unusual stay lengths increase risk
     )
 
+    # Mark claims as needing rework if their risk is high enough
     df["needs_rework"] = (rework_probabilities > 0.5).astype(int)
 
-    # Generate payment difference for reworked claims
+    # For claims that need rework, calculate potential payment changes
+    # This shows how much money might be affected
     df["payment_difference"] = 0.0
     rework_mask = df["needs_rework"] == 1
-
-    # Payment difference is related to original claim amount and LOS difference
     df.loc[rework_mask, "payment_difference"] = df.loc[rework_mask, "claim_charges"] * (
-        # np.random.uniform(-0.3, 0.3, size=rework_mask.sum()) +
-        df.loc[rework_mask, "los_difference"]
-        * 0.1
-    )  # LOS difference affects payment
+        df.loc[rework_mask, "los_difference"] * 0.1
+    )
 
     # Round monetary values to 2 decimal places
     df["claim_charges"] = df["claim_charges"].round(2)
