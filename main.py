@@ -399,27 +399,55 @@ def score_random_forest_data(df_name_prefix, claims_df, rework_prob, impact_scor
 
 
 def run_random_forest_model(claims_df, should_display_stats=False):
+    """
+    Analyzes claims data to predict which claims might need rework.
+    
+    This function:
+    1. Prepares the claims data for analysis
+    2. Trains a prediction model
+    3. Calculates how likely each claim needs rework
+    4. Determines the impact and priority of each claim
+    5. Optionally shows how well the model performed
+    """
     c = Console()
 
-    # prepare the data
+    # Convert raw claims data into a format our model can understand
+    # (like translating text into numbers)
     prepared_data, features = prepare_features(claims_df)
 
-    # Train and evaluate the model
-    model, scaler, feature_importance, X_test, y_test, y_pred_proba = train_and_evaluate_random_forest_model(prepared_data, features)
+    # Train the model and get back several important pieces:
+    # - model: the trained prediction system
+    # - scaler: tool to make sure all numbers are on the same scale
+    # - feature_importance: shows which claim attributes matter most
+    # - X_test, y_test: data used to check model accuracy
+    # - y_pred_proba: how confident the model is about each prediction
+    model, scaler, feature_importance, X_test, y_test, y_pred_proba = train_and_evaluate_random_forest_model(
+        prepared_data, features
+    )
 
-    # Calculate priority scores for all claims
-    rework_prob, impact_score, priority_score = calculate_priority_scores(prepared_data, model, scaler, features)
+    # Calculate three scores for each claim:
+    # 1. rework_prob: How likely the claim needs rework (0-100%)
+    # 2. impact_score: How much time/money could be affected
+    # 3. priority_score: Combined importance based on probability and impact
+    rework_prob, impact_score, priority_score = calculate_priority_scores(
+        prepared_data, model, scaler, features
+    )
 
+    # Convert probability predictions into yes/no decisions
+    # (if probability > 50%, predict the claim needs rework)
     predictions = (y_pred_proba > 0.5).astype(int)
 
-    # Print prediction distributions
+    # If requested, show detailed statistics about how well the model performed
     if should_display_stats:
+        # Show how many claims were predicted to need/not need rework
         c.print("\nClass distribution in predictions:", np.unique(predictions, return_counts=True))
         c.print("Class distribution in test set:", np.unique(y_test, return_counts=True))
 
+        # Show detailed accuracy metrics
         c.print("\nModel Performance:")
         c.print(classification_report(y_test, predictions, zero_division=0))
 
+    # Return everything needed to score and prioritize the claims
     return feature_importance, rework_prob, impact_score, priority_score
 
 
