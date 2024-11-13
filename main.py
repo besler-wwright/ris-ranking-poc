@@ -489,15 +489,14 @@ def create_feature_importance_pie_chart(df_name_prefix, feature_importance):
     # Create a new figure with a specific size
     plt.figure(figsize=(12, 8))
     
-    # Create pie chart
-    # Remove labels from pie chart itself since they'll be in the legend
-    patches, _ = plt.pie(
+    # Create pie chart with direct labels
+    patches, texts = plt.pie(
         feature_importance['importance'],
-        labels=None,  # Remove direct labels
+        labels=[f"{imp:.1%}" for imp in feature_importance['importance']],  # Show percentages on slices
         startangle=90
     )
     
-    # Create legend labels with percentages
+    # Create legend labels with feature names and percentages
     legend_labels = [
         f"{feat} ({imp:.1%})" 
         for feat, imp in zip(feature_importance['feature'], feature_importance['importance'])
