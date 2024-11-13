@@ -71,7 +71,7 @@ def generate_synthetic_claims(
 
     # Create IDs for different parts of the healthcare system
     provider_ids = [f"PRV{str(i).zfill(4)}" for i in range(1, num_of_providers + 1)]  # Doctor/Hospital IDs
-    payor_ids = [f"PAY{str(i).zfill(3)}" for i in range(1, num_of_payors + 1)]        # Insurance company IDs
+    payor_ids = [f"PAY{str(i).zfill(3)}" for i in range(1, num_of_payors + 1)]  # Insurance company IDs
     diagnosis_codes = [f"ICD{str(i).zfill(3)}" for i in range(1, num_of_diagnosis_codes + 1)]  # Disease codes
     procedure_codes = [f"CPT{str(i).zfill(4)}" for i in range(1, num_of_procedure_codes + 1)]  # Treatment codes
 
@@ -108,11 +108,11 @@ def generate_synthetic_claims(
     data = {
         "claim_id": [f"CLM{str(i).zfill(6)}" for i in range(1, num_claims + 1)],  # Unique claim numbers
         "date_submitted": [(datetime(2024, 1, 1) + timedelta(days=np.random.randint(0, 365))).strftime("%Y-%m-%d") for _ in range(num_claims)],  # Random dates in 2024
-        "payor_id": np.random.choice(payor_ids, num_claims),          # Random insurance company
-        "provider_id": np.random.choice(provider_ids, num_claims),    # Random healthcare provider
+        "payor_id": np.random.choice(payor_ids, num_claims),  # Random insurance company
+        "provider_id": np.random.choice(provider_ids, num_claims),  # Random healthcare provider
         "provider_specialty": np.random.choice(specialties, num_claims),  # Random doctor specialty
         "diagnosis_code": np.random.choice(diagnosis_codes, num_claims),  # Random diagnosis
-        "procedure_code": procedure_code_list,                           # Random procedure
+        "procedure_code": procedure_code_list,  # Random procedure
         "claim_charges": [proc_dx_charges[(p_code, d_code, p_id)] for p_code, d_code, p_id in zip(procedure_code_list, dx_code_list, payer_id_list)],  # Look up the cost
     }
 
@@ -134,10 +134,10 @@ def generate_synthetic_claims(
     base = np.random.random(num_claims) * (0.02 if num_of_diagnosis_codes >= 2 else 0.1)
     rework_probabilities = (
         base
-        + (df["claim_charges"] > 2000).astype(float) * 0.1           # Higher costs increase risk
+        + (df["claim_charges"] > 2000).astype(float) * 0.1  # Higher costs increase risk
         + (df["procedure_code"].isin(["CPT0001", "CPT0003", "CPT0005"])).astype(float) * 0.15  # Certain procedures are riskier
-        + (df["provider_id"].isin(["PRV0001", "PRV0002"])).astype(float) * 0.2   # Some providers have higher error rates
-        + (abs(df["los_difference"]) > 2).astype(float) * 0.2        # Unusual stay lengths increase risk
+        + (df["provider_id"].isin(["PRV0001", "PRV0002"])).astype(float) * 0.2  # Some providers have higher error rates
+        + (abs(df["los_difference"]) > 2).astype(float) * 0.2  # Unusual stay lengths increase risk
     )
 
     # Mark claims as needing rework if their risk is high enough
@@ -147,9 +147,7 @@ def generate_synthetic_claims(
     # This shows how much money might be affected
     df["payment_difference"] = 0.0
     rework_mask = df["needs_rework"] == 1
-    df.loc[rework_mask, "payment_difference"] = df.loc[rework_mask, "claim_charges"] * (
-        df.loc[rework_mask, "los_difference"] * 0.1
-    )
+    df.loc[rework_mask, "payment_difference"] = df.loc[rework_mask, "claim_charges"] * (df.loc[rework_mask, "los_difference"] * 0.1)
 
     # Round monetary values to 2 decimal places
     df["claim_charges"] = df["claim_charges"].round(2)
@@ -618,7 +616,7 @@ if __name__ == "__main__":
 
     # Start ---------------------------------------
     os.makedirs("data", exist_ok=True)
-    os.makedirs("plots", exist_ok=True)
+    os.makedirs("plots", exist_ok=True)  # future charts and graphs
 
     # run_simple_scenario()
     # run_less_simple_scenario()
