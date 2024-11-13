@@ -191,32 +191,44 @@ def generate_synthetic_claims(
 
 def prepare_features(df):
     """
-    Prepare features for the model, including encoding and feature engineering.
+    Converts raw claims data into a format that our machine learning model can understand.
+    
+    The model needs numbers to work with, so we need to:
+    1. Convert text values (like provider IDs) into numbers
+    2. Keep only the information that helps predict rework needs
+    
+    It's like translating a book into a language the computer can read.
     """
-    # Create a copy to avoid modifying original data
+    # Make a fresh copy of our data to avoid changing the original
     data = df.copy()
 
-    # Encode categorical variables
+    # Convert text categories into numbers using a label encoder
+    # For example: 
+    # PAY001, PAY002, PAY003 becomes 0, 1, 2
+    # This helps the model work with categorical data
     le = LabelEncoder()
-    data["payor_id_encoded"] = le.fit_transform(data["payor_id"])
-    data["provider_id_encoded"] = le.fit_transform(data["provider_id"])
-    data["procedure_code_encoded"] = le.fit_transform(data["procedure_code"])
-    data["diagnosis_code_encoded"] = le.fit_transform(data["diagnosis_code"])
-    data["provider_specialty_encoded"] = le.fit_transform(data["provider_specialty"])
+    
+    # Convert each text column into numbers
+    data["payor_id_encoded"] = le.fit_transform(data["payor_id"])           # Insurance company IDs
+    data["provider_id_encoded"] = le.fit_transform(data["provider_id"])     # Healthcare provider IDs
+    data["procedure_code_encoded"] = le.fit_transform(data["procedure_code"]) # Medical procedure codes
+    data["diagnosis_code_encoded"] = le.fit_transform(data["diagnosis_code"]) # Diagnosis codes
+    data["provider_specialty_encoded"] = le.fit_transform(data["provider_specialty"]) # Doctor specialties
 
-    # Create feature list for model
+    # List of features we'll use to predict rework needs
+    # We choose these based on what's most likely to affect rework:
     features = [
-        # "claim_charges",
-        "payor_id_encoded",
-        "provider_id_encoded",
-        "procedure_code_encoded",
-        "diagnosis_code_encoded",
-        "provider_specialty_encoded",
-        # "avg_los",
-        # "actual_los",
-        "los_difference",
+        # Who was involved
+        "payor_id_encoded",          # Which insurance company
+        "provider_id_encoded",       # Which healthcare provider
+        "procedure_code_encoded",    # What procedure was done
+        "diagnosis_code_encoded",    # What condition was treated
+        "provider_specialty_encoded", # Doctor's specialty
+        # Time-related factors
+        "los_difference",           # How different actual stay was from expected
     ]
 
+    # Return both the prepared data and the list of features we'll use
     return data, features
 
 
