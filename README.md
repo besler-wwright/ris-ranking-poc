@@ -4,6 +4,13 @@ A proof of concept for ranking medical claims using synthetic data and machine l
 
 ## Setup and Installation
 
+### Prerequisites
+
+- Python 3.10 or higher
+- Poetry package manager
+
+### Installation Steps
+
 1. Install Poetry (package manager):
    
    **Windows (PowerShell):**
@@ -27,6 +34,14 @@ A proof of concept for ranking medical claims using synthetic data and machine l
    poetry install
    ```
 
+   This will install all required packages:
+   - pandas 2.2.3
+   - numpy 2.1.2
+   - scikit-learn 1.5.2
+   - matplotlib 3.9.2
+   - rich 13.9.4
+   - loguru 0.7.2
+
 4. Run the application in one of two ways:
 
    **Option 1:** Activate virtual environment first
@@ -37,7 +52,7 @@ A proof of concept for ranking medical claims using synthetic data and machine l
 
    **Option 2:** Run directly through Poetry
    ```bash
-   poetry run python main.py
+   poetry run start
    ```
 
 ## Features
@@ -80,7 +95,7 @@ The system generates synthetic medical claims and uses a Random Forest model to 
 
 ## Package Management
 
-This project uses Poetry for dependency management. Common Poetry commands:
+This project uses Poetry for dependency management. Key Poetry commands:
 
 - Add a new package:
   ```bash
@@ -106,3 +121,15 @@ This project uses Poetry for dependency management. Common Poetry commands:
   ```bash
   poetry export -f requirements.txt --output requirements.txt
   ```
+
+- Check dependency conflicts:
+  ```bash
+  poetry check
+  ```
+
+- List outdated packages:
+  ```bash
+  poetry show --outdated
+  ```
+
+Note: This project requires Python 3.10 or higher. All dependencies are locked to specific versions in poetry.lock for reproducibility.
