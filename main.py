@@ -452,24 +452,62 @@ def run_random_forest_model(claims_df, should_display_stats=False):
 
 
 def run_random_forest_and_score_data(df_name_prefix, claims_df):
+    """
+    Main function that processes claims data to identify which claims need attention.
+    
+    This function:
+    1. Analyzes the claims data using machine learning
+    2. Scores each claim based on risk and impact
+    3. Saves the results to a file
+    4. Shows which factors are most important
+    5. Displays the top priority claims that need attention
+    
+    Parameters:
+    - df_name_prefix: Name used for saving the output file
+    - claims_df: The claims data to analyze
+    """
     c = Console()
-    # Model the data
+    
+    # Step 1: Run the machine learning model to analyze the claims
+    # This gives us:
+    # - feature_importance: which factors matter most in predicting rework
+    # - rework_prob: likelihood each claim needs rework
+    # - impact_score: potential effect on time/money
+    # - priority_score: overall importance ranking
     feature_importance, rework_prob, impact_score, priority_score = run_random_forest_model(claims_df)
 
-    # Add scores to the original dataframe
-    scored_claims_sorted = score_random_forest_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score)
+    # Step 2: Add our prediction scores to the claims data and sort by priority
+    scored_claims_sorted = score_random_forest_data(
+        df_name_prefix, 
+        claims_df, 
+        rework_prob, 
+        impact_score, 
+        priority_score
+    )
 
-    # Print summary statistics and top priority claims
+    # Step 3: Show which factors were most important in making predictions
+    # Higher importance means that factor was more useful in spotting claims that need rework
     c.print("\n[bold green]-----Feature Importance:[/bold green]--------------------------------")
     c.print(feature_importance)
 
+    # Step 4: Display the 10 claims that need the most attention
+    # These are sorted by priority_score, with highest priority first
     c.print("\n[black]-----Top 10 Priority Claims:[/black]--------------------------------")
+    # Show key information about each high-priority claim
     c.print(
         scored_claims_sorted[
-            ["impact_score", "claim_id", "diagnosis_code", "procedure_code", "claim_charges", "rework_probability", "priority_score", "los_difference", "payment_difference"]
-        ].head(  # noqa
-            10
-        )
+            [
+                "impact_score",         # How big an effect rework might have
+                "claim_id",             # Unique identifier for the claim
+                "diagnosis_code",       # What condition was treated
+                "procedure_code",       # What procedure was performed
+                "claim_charges",        # How much the claim cost
+                "rework_probability",   # How likely it needs rework
+                "priority_score",       # Overall importance ranking
+                "los_difference",       # Difference in length of stay
+                "payment_difference"    # Potential payment impact
+            ]
+        ].head(10)
     )
 
 
