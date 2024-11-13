@@ -282,33 +282,56 @@ def calculate_priority_scores(data, model, scaler, features):
 
 def train_and_evaluate_random_forest_model(data, features):
     """
-    Train the model and evaluate its performance.
+    Train a machine learning model to predict which claims need rework and evaluate how well it performs.
+    
+    This function:
+    1. Prepares the data for training
+    2. Splits data into training and testing sets
+    3. Normalizes the data
+    4. Trains a Random Forest model
+    5. Evaluates the model's performance
     """
+    # X contains our input features, y contains what we're trying to predict (needs_rework)
     X = data[features]
     y = data["needs_rework"]
 
-    # Check if we have enough variation in the target variable
+    # Make sure we have both claims that need rework (1) and don't need rework (0)
+    # The model needs examples of both to learn effectively
     if len(np.unique(y)) < 2:
         raise ValueError("Target variable 'needs_rework' has only one class. Need both positive and negative examples for training.")
 
-    # Split the data, using 80% of the data for training and 20% for testing, y=Needs Rework as the target variable
+    # Split our data into two parts:
+    # - 80% for training (teaching the model)
+    # - 20% for testing (checking how well it learned)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Scale features
+    # StandardScaler makes sure all our features are on the same scale
+    # (like converting feet and inches both to meters)
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    # Train model
-    model = RandomForestClassifier(n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=42)
+    # Create and train the Random Forest model
+    # Random Forest works by creating many decision trees and combining their predictions
+    # It's like getting opinions from multiple experts and taking a vote
+    model = RandomForestClassifier(
+        n_estimators=100,  # Create 100 different decision trees
+        max_depth=None,    # Let trees grow as deep as needed
+        min_samples_split=2,  # Minimum samples needed to split a node
+        min_samples_leaf=1,   # Minimum samples needed in a leaf node
+        random_state=42       # For reproducible results
+    )
+    # Train the model using our training data
     model.fit(X_train_scaled, y_train)
 
-    # Get feature importance
+    # Calculate how important each feature was in making predictions
+    # Higher importance means that feature was more useful in predicting rework needs
     feature_importance = pd.DataFrame({"feature": features, "importance": model.feature_importances_})
     feature_importance = feature_importance[feature_importance["importance"] > 0].sort_values("importance", ascending=False)
 
-    # Get predictions
-    y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+    # Get probability predictions for our test data
+    # This tells us how confident the model is that each claim needs rework
+    y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]  # Get probability of needs_rework=1
 
     return model, scaler, feature_importance, X_test, y_test, y_pred_proba
 
