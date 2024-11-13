@@ -478,6 +478,33 @@ def run_random_forest_model(claims_df, should_display_stats=False):
     return feature_importance, rework_prob, impact_score, priority_score
 
 
+def create_feature_importance_pie_chart(df_name_prefix, feature_importance):
+    """
+    Creates a pie chart showing how important each feature was in predicting rework needs.
+    
+    Parameters:
+    - df_name_prefix: Name used for saving the chart file
+    - feature_importance: DataFrame containing feature names and their importance scores
+    """
+    # Create a new figure with a specific size
+    plt.figure(figsize=(10, 8))
+    
+    # Create pie chart
+    plt.pie(
+        feature_importance['importance'], 
+        labels=[f"{feat}\n({imp:.1%})" for feat, imp in zip(feature_importance['feature'], feature_importance['importance'])],
+        autopct='',  # We're including percentages in the labels
+        startangle=90
+    )
+    
+    # Add title
+    plt.title(f'Feature Importance Distribution - {df_name_prefix}')
+    
+    # Save the chart
+    plt.savefig(f'plots/{df_name_prefix}_feature_importance_pie.png')
+    plt.close()  # Close the figure to free memory
+
+
 def run_random_forest_and_score_data(df_name_prefix, claims_df):
     """
     Main function that processes claims data to identify which claims need attention.
@@ -510,6 +537,9 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
     # Higher importance means that factor was more useful in spotting claims that need rework
     c.print("\n[bold green]-----Feature Importance:[/bold green]--------------------------------")
     c.print(feature_importance)
+    
+    # Create pie chart visualization
+    create_feature_importance_pie_chart(df_name_prefix, feature_importance)
 
     # Step 4: Display the 10 claims that need the most attention
     # These are sorted by priority_score, with highest priority first
