@@ -2,24 +2,40 @@
 
 A proof of concept for ranking medical claims using synthetic data and machine learning.
 
-## Setup
+## Setup and Installation
 
-1. Install Poetry if you haven't already:
+1. Install Poetry (package manager):
+   
+   **Windows (PowerShell):**
+   ```powershell
+   (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+   ```
+
+   **macOS/Linux:**
    ```bash
    curl -sSL https://install.python-poetry.org | python3 -
    ```
 
-2. Install dependencies:
+2. Clone this repository:
+   ```bash
+   git clone <repository-url>
+   cd ris-ranking-poc
+   ```
+
+3. Install project dependencies:
    ```bash
    poetry install
    ```
 
-3. Activate the virtual environment:
+4. Run the application in one of two ways:
+
+   **Option 1:** Activate virtual environment first
    ```bash
    poetry shell
+   python main.py
    ```
 
-4. Run the application:
+   **Option 2:** Run directly through Poetry
    ```bash
    poetry run python main.py
    ```
@@ -62,17 +78,31 @@ The system generates synthetic medical claims and uses a Random Forest model to 
 - Procedure codes
 - Payor information
 
-## Dependencies
+## Package Management
 
-Managed via Poetry. Key dependencies include:
-- NumPy
-- Pandas
-- Scikit-learn
-- Rich (for console output)
-- Loguru (for logging)
+This project uses Poetry for dependency management. Common Poetry commands:
 
-## Setup
+- Add a new package:
+  ```bash
+  poetry add package_name
+  ```
 
-1. Ensure Poetry is installed
-2. Run `poetry install`
-3. Use the provided functions to generate data and train models
+- Remove a package:
+  ```bash
+  poetry remove package_name
+  ```
+
+- Update all dependencies:
+  ```bash
+  poetry update
+  ```
+
+- Show currently installed packages:
+  ```bash
+  poetry show
+  ```
+
+- Export dependencies to requirements.txt:
+  ```bash
+  poetry export -f requirements.txt --output requirements.txt
+  ```
