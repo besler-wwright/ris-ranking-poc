@@ -490,7 +490,8 @@ def create_feature_importance_pie_chart(df_name_prefix, feature_importance):
     plt.figure(figsize=(12, 8))
     
     # Create pie chart with direct labels
-    patches, texts = plt.pie(
+    # Use _ to ignore any additional return values
+    patches, *_ = plt.pie(
         feature_importance['importance'],
         labels=[f"{imp:.1%}" for imp in feature_importance['importance']],  # Show percentages on slices
         startangle=90
