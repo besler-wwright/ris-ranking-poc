@@ -618,7 +618,7 @@ if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
     os.makedirs("plots", exist_ok=True)  # future charts and graphs
 
-    # run_simple_scenario()
-    # run_less_simple_scenario()
+    run_simple_scenario()
+    run_less_simple_scenario()
     run_even_less_simple_scenario()
-    # run_standard_scenario_01()
+    run_standard_scenario_01()
