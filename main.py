@@ -337,35 +337,64 @@ def train_and_evaluate_random_forest_model(data, features):
 
 
 def score_random_forest_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score):
+    """
+    Takes the predictions from our model and adds them to our claims data, then saves the results.
+    
+    This function:
+    1. Adds prediction scores to each claim
+    2. Sorts claims by priority (highest priority first)
+    3. Organizes the data columns in a logical order
+    4. Saves the scored results to a CSV file
+    
+    Parameters:
+    - df_name_prefix: Name prefix for the output file
+    - claims_df: Original claims data
+    - rework_prob: Model's prediction of how likely each claim needs rework (0-1)
+    - impact_score: How big an effect rework might have (based on money and time)
+    - priority_score: Combined score of probability and impact (higher = more important)
+    """
+    # Make a copy of our claims data so we don't modify the original
     scored_claims = claims_df.copy()
+    
+    # Add our three prediction scores to each claim:
+    # 1. How likely it needs rework
+    # 2. How big an impact rework would have
+    # 3. Overall priority score combining both factors
     scored_claims["rework_probability"] = rework_prob
     scored_claims["impact_score"] = impact_score
     scored_claims["priority_score"] = priority_score
 
-    # Sort by priority score
+    # Sort all claims by priority score, putting highest priority claims first
     scored_claims_sorted = scored_claims.sort_values("priority_score", ascending=False)
 
-    # Reorder columns before saving
+    # Arrange columns in a logical order for the output file
+    # First show basic claim info, then details, then our prediction scores
     column_order = [
+        # Basic claim identification
         "claim_id",
         "date_submitted",
         "diagnosis_code",
         "procedure_code",
         "claim_charges",
+        # Length of stay information
         "avg_los",
         "actual_los",
         "los_difference",
+        # Provider information
         "provider_id",
         "provider_specialty",
+        # Outcome information
         "needs_rework",
         "payment_difference",
     ]
+    # Add our prediction scores to the end of the column list
     scored_claims_sorted = scored_claims_sorted[column_order + ["rework_probability", "impact_score", "priority_score"]]
 
-    # Save scored claims to CSV
+    # Save the scored claims to a CSV file for later use
     csv_filename = f"data/{df_name_prefix}_random_forest_scored_medical_claims.csv"
     scored_claims_sorted.to_csv(csv_filename, index=False)
     c.print(f"\t[green]{df_name_prefix} scored data saved to {csv_filename}[/green]")
+    
     return scored_claims_sorted
 
 
