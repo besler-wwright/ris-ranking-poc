@@ -258,7 +258,7 @@ def calculate_priority_scores(data, model, scaler, features):
     Calculate how important each claim is by combining two factors:
     1. How likely the claim needs rework
     2. How big an impact rework would have (in terms of time and money)
-    
+
     This helps us focus on claims that both:
     - Have a high chance of needing rework
     - Would have a significant effect if reworked
@@ -276,8 +276,8 @@ def calculate_priority_scores(data, model, scaler, features):
 
     # Calculate typical impacts we see in the data
     # This helps us understand what's "normal" vs "unusual"
-    avg_payment_impact = abs(data["payment_difference"]).mean()  # Average money impact
-    avg_los_impact = abs(data["los_difference"]).mean()         # Average time impact
+    # avg_payment_impact = abs(data["payment_difference"]).mean()  # Average money impact
+    # avg_los_impact = abs(data["los_difference"]).mean()         # Average time impact
 
     # Convert impacts to a 0-1 scale for fair comparison
     # (like grading on a curve from 0 to 100%)
@@ -304,7 +304,7 @@ def calculate_priority_scores(data, model, scaler, features):
 def train_and_evaluate_random_forest_model(data, features):
     """
     Train a machine learning model to predict which claims need rework and evaluate how well it performs.
-    
+
     This function:
     1. Prepares the data for training
     2. Splits data into training and testing sets
@@ -337,10 +337,10 @@ def train_and_evaluate_random_forest_model(data, features):
     # It's like getting opinions from multiple experts and taking a vote
     model = RandomForestClassifier(
         n_estimators=100,  # Create 100 different decision trees
-        max_depth=None,    # Let trees grow as deep as needed
+        max_depth=None,  # Let trees grow as deep as needed
         min_samples_split=2,  # Minimum samples needed to split a node
-        min_samples_leaf=1,   # Minimum samples needed in a leaf node
-        random_state=42       # For reproducible results
+        min_samples_leaf=1,  # Minimum samples needed in a leaf node
+        random_state=42,  # For reproducible results
     )
     # Train the model using our training data
     model.fit(X_train_scaled, y_train)
@@ -360,13 +360,13 @@ def train_and_evaluate_random_forest_model(data, features):
 def score_random_forest_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score):
     """
     Takes the predictions from our model and adds them to our claims data, then saves the results.
-    
+
     This function:
     1. Adds prediction scores to each claim
     2. Sorts claims by priority (highest priority first)
     3. Organizes the data columns in a logical order
     4. Saves the scored results to a CSV file
-    
+
     Parameters:
     - df_name_prefix: Name prefix for the output file
     - claims_df: Original claims data
@@ -376,7 +376,7 @@ def score_random_forest_data(df_name_prefix, claims_df, rework_prob, impact_scor
     """
     # Make a copy of our claims data so we don't modify the original
     scored_claims = claims_df.copy()
-    
+
     # Add our three prediction scores to each claim:
     # 1. How likely it needs rework
     # 2. How big an impact rework would have
@@ -415,14 +415,14 @@ def score_random_forest_data(df_name_prefix, claims_df, rework_prob, impact_scor
     csv_filename = f"data/{df_name_prefix}_random_forest_scored_medical_claims.csv"
     scored_claims_sorted.to_csv(csv_filename, index=False)
     c.print(f"\t[green]{df_name_prefix} scored data saved to {csv_filename}[/green]")
-    
+
     return scored_claims_sorted
 
 
 def run_random_forest_model(claims_df, should_display_stats=False):
     """
     Analyzes claims data to predict which claims might need rework.
-    
+
     This function:
     1. Prepares the claims data for analysis
     2. Trains a prediction model
@@ -442,17 +442,13 @@ def run_random_forest_model(claims_df, should_display_stats=False):
     # - feature_importance: shows which claim attributes matter most
     # - X_test, y_test: data used to check model accuracy
     # - y_pred_proba: how confident the model is about each prediction
-    model, scaler, feature_importance, X_test, y_test, y_pred_proba = train_and_evaluate_random_forest_model(
-        prepared_data, features
-    )
+    model, scaler, feature_importance, X_test, y_test, y_pred_proba = train_and_evaluate_random_forest_model(prepared_data, features)
 
     # Calculate three scores for each claim:
     # 1. rework_prob: How likely the claim needs rework (0-100%)
     # 2. impact_score: How much time/money could be affected
     # 3. priority_score: Combined importance based on probability and impact
-    rework_prob, impact_score, priority_score = calculate_priority_scores(
-        prepared_data, model, scaler, features
-    )
+    rework_prob, impact_score, priority_score = calculate_priority_scores(prepared_data, model, scaler, features)
 
     # Convert probability predictions into yes/no decisions
     # (if probability > 50%, predict the claim needs rework)
@@ -475,20 +471,20 @@ def run_random_forest_model(claims_df, should_display_stats=False):
 def run_random_forest_and_score_data(df_name_prefix, claims_df):
     """
     Main function that processes claims data to identify which claims need attention.
-    
+
     This function:
     1. Analyzes the claims data using machine learning
     2. Scores each claim based on risk and impact
     3. Saves the results to a file
     4. Shows which factors are most important
     5. Displays the top priority claims that need attention
-    
+
     Parameters:
     - df_name_prefix: Name used for saving the output file
     - claims_df: The claims data to analyze
     """
     c = Console()
-    
+
     # Step 1: Run the machine learning model to analyze the claims
     # This gives us:
     # - feature_importance: which factors matter most in predicting rework
@@ -498,13 +494,7 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
     feature_importance, rework_prob, impact_score, priority_score = run_random_forest_model(claims_df)
 
     # Step 2: Add our prediction scores to the claims data and sort by priority
-    scored_claims_sorted = score_random_forest_data(
-        df_name_prefix, 
-        claims_df, 
-        rework_prob, 
-        impact_score, 
-        priority_score
-    )
+    scored_claims_sorted = score_random_forest_data(df_name_prefix, claims_df, rework_prob, impact_score, priority_score)
 
     # Step 3: Show which factors were most important in making predictions
     # Higher importance means that factor was more useful in spotting claims that need rework
@@ -518,15 +508,15 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
     c.print(
         scored_claims_sorted[
             [
-                "impact_score",         # How big an effect rework might have
-                "claim_id",             # Unique identifier for the claim
-                "diagnosis_code",       # What condition was treated
-                "procedure_code",       # What procedure was performed
-                "claim_charges",        # How much the claim cost
-                "rework_probability",   # How likely it needs rework
-                "priority_score",       # Overall importance ranking
-                "los_difference",       # Difference in length of stay
-                "payment_difference"    # Potential payment impact
+                "impact_score",  # How big an effect rework might have
+                "claim_id",  # Unique identifier for the claim
+                "diagnosis_code",  # What condition was treated
+                "procedure_code",  # What procedure was performed
+                "claim_charges",  # How much the claim cost
+                "rework_probability",  # How likely it needs rework
+                "priority_score",  # Overall importance ranking
+                "los_difference",  # Difference in length of stay
+                "payment_difference",  # Potential payment impact
             ]
         ].head(10)
     )
