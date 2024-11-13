@@ -15,6 +15,9 @@ rich = "^13.9.4"
 loguru = "^0.7.2"
 
 
+[tool.poetry.scripts]
+start = "python main.py"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

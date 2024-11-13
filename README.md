@@ -2,6 +2,28 @@
 
 A proof of concept for ranking medical claims using synthetic data and machine learning.
 
+## Setup
+
+1. Install Poetry if you haven't already:
+   ```bash
+   curl -sSL https://install.python-poetry.org | python3 -
+   ```
+
+2. Install dependencies:
+   ```bash
+   poetry install
+   ```
+
+3. Activate the virtual environment:
+   ```bash
+   poetry shell
+   ```
+
+4. Run the application:
+   ```bash
+   poetry run python main.py
+   ```
+
 ## Features
 
 - Generates synthetic medical claims data with configurable parameters
