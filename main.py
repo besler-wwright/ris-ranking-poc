@@ -487,21 +487,39 @@ def create_feature_importance_pie_chart(df_name_prefix, feature_importance):
     - feature_importance: DataFrame containing feature names and their importance scores
     """
     # Create a new figure with a specific size
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(12, 8))
     
     # Create pie chart
-    plt.pie(
-        feature_importance['importance'], 
-        labels=[f"{feat}\n({imp:.1%})" for feat, imp in zip(feature_importance['feature'], feature_importance['importance'])],
-        autopct='',  # We're including percentages in the labels
+    # Remove labels from pie chart itself since they'll be in the legend
+    patches, _ = plt.pie(
+        feature_importance['importance'],
+        labels=None,  # Remove direct labels
         startangle=90
+    )
+    
+    # Create legend labels with percentages
+    legend_labels = [
+        f"{feat} ({imp:.1%})" 
+        for feat, imp in zip(feature_importance['feature'], feature_importance['importance'])
+    ]
+    
+    # Add legend
+    plt.legend(
+        patches,
+        legend_labels,
+        title="Feature Importance",
+        loc="center left",
+        bbox_to_anchor=(1, 0, 0.5, 1)  # Position legend to the right of the pie chart
     )
     
     # Add title
     plt.title(f'Feature Importance Distribution - {df_name_prefix}')
     
+    # Adjust layout to prevent legend cutoff
+    plt.tight_layout()
+    
     # Save the chart
-    plt.savefig(f'plots/{df_name_prefix}_feature_importance_pie.png')
+    plt.savefig(f'plots/{df_name_prefix}_feature_importance_pie.png', bbox_inches='tight')
     plt.close()  # Close the figure to free memory
 
 
