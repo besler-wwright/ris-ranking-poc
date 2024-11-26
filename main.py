@@ -481,45 +481,32 @@ def run_random_forest_model(claims_df, should_display_stats=False):
 def create_feature_importance_pie_chart(df_name_prefix, feature_importance):
     """
     Creates a pie chart showing how important each feature was in predicting rework needs.
-    
+
     Parameters:
     - df_name_prefix: Name used for saving the chart file
     - feature_importance: DataFrame containing feature names and their importance scores
     """
     # Create a new figure with a specific size
     plt.figure(figsize=(12, 8))
-    
+
     # Create pie chart with direct labels
     # Use _ to ignore any additional return values
-    patches, *_ = plt.pie(
-        feature_importance['importance'],
-        labels=[f"{imp:.1%}" for imp in feature_importance['importance']],  # Show percentages on slices
-        startangle=90
-    )
-    
+    patches, *_ = plt.pie(feature_importance["importance"], labels=[f"{imp:.1%}" for imp in feature_importance["importance"]], startangle=90)  # Show percentages on slices
+
     # Create legend labels with feature names and percentages
-    legend_labels = [
-        f"{feat} ({imp:.1%})" 
-        for feat, imp in zip(feature_importance['feature'], feature_importance['importance'])
-    ]
-    
+    legend_labels = [f"{feat} ({imp:.1%})" for feat, imp in zip(feature_importance["feature"], feature_importance["importance"])]
+
     # Add legend
-    plt.legend(
-        patches,
-        legend_labels,
-        title="Feature Importance",
-        loc="center left",
-        bbox_to_anchor=(1, 0, 0.5, 1)  # Position legend to the right of the pie chart
-    )
-    
+    plt.legend(patches, legend_labels, title="Feature Importance", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))  # Position legend to the right of the pie chart
+
     # Add title
-    plt.title(f'Feature Importance Distribution - {df_name_prefix}')
-    
+    plt.title(f"Feature Importance Distribution - {df_name_prefix}")
+
     # Adjust layout to prevent legend cutoff
     plt.tight_layout()
-    
+
     # Save the chart
-    plt.savefig(f'plots/{df_name_prefix}_feature_importance_pie.png', bbox_inches='tight')
+    plt.savefig(f"plots/{df_name_prefix}_feature_importance_pie.png", bbox_inches="tight")
     plt.close()  # Close the figure to free memory
 
 
@@ -555,7 +542,7 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
     # Higher importance means that factor was more useful in spotting claims that need rework
     c.print("\n[bold green]-----Feature Importance:[/bold green]--------------------------------")
     c.print(feature_importance)
-    
+
     # Create pie chart visualization
     create_feature_importance_pie_chart(df_name_prefix, feature_importance)
 
@@ -566,13 +553,13 @@ def run_random_forest_and_score_data(df_name_prefix, claims_df):
     c.print(
         scored_claims_sorted[
             [
+                "priority_score",  # Overall importance ranking
                 "impact_score",  # How big an effect rework might have
+                "rework_probability",  # How likely it needs rework
                 "claim_id",  # Unique identifier for the claim
                 "diagnosis_code",  # What condition was treated
                 "procedure_code",  # What procedure was performed
                 "claim_charges",  # How much the claim cost
-                "rework_probability",  # How likely it needs rework
-                "priority_score",  # Overall importance ranking
                 "los_difference",  # Difference in length of stay
                 "payment_difference",  # Potential payment impact
             ]
@@ -588,7 +575,7 @@ def run_simple_scenario():
     c.print("\t[bold cyan]Expecting LOS and Payors to be important features[/bold cyan]")
     claims_df = generate_synthetic_claims(
         df_name_prefix,
-        num_claims=100,
+        num_claims=1000,
         seed=42,
         num_of_payors=2,
         num_of_providers=1,
@@ -645,7 +632,7 @@ def run_standard_scenario_01():
     c = Console()
     df_name_prefix = "STANDARD_SCENARIO_01"
     c.print(f"\n[bold green]Running {df_name_prefix} scenario *************************************[/bold green]")
-    c.print("\t[bold cyan]Expecting LOS, Diag Codes, and Payors to be important features[/bold cyan]")
+    c.print("\t[bold cyan]Expecting Proc Codes, LOS, Diag Codes, and Payors to be important features[/bold cyan]")
     claims_df = generate_synthetic_claims(
         df_name_prefix,
         num_claims=1000,
@@ -667,6 +654,6 @@ if __name__ == "__main__":
     os.makedirs("plots", exist_ok=True)  # future charts and graphs
 
     run_simple_scenario()
-    run_less_simple_scenario()
-    run_even_less_simple_scenario()
-    run_standard_scenario_01()
+    # run_less_simple_scenario()
+    # run_even_less_simple_scenario()
+    # run_standard_scenario_01()
