@@ -595,7 +595,7 @@ def run_less_simple_scenario():
     c.print("\t[bold cyan]Expecting LOS, Payors, and Provider Specialties to be important features[/bold cyan]")
     claims_df = generate_synthetic_claims(
         df_name_prefix,
-        num_claims=100,
+        num_claims=1000,
         seed=42,
         num_of_payors=2,
         num_of_providers=1,
@@ -653,7 +653,7 @@ if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
     os.makedirs("plots", exist_ok=True)  # future charts and graphs
 
-    run_simple_scenario()
+    # run_simple_scenario()
     # run_less_simple_scenario()
     # run_even_less_simple_scenario()
-    # run_standard_scenario_01()
+    run_standard_scenario_01()
