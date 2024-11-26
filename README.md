@@ -12,29 +12,34 @@ A proof of concept for ranking medical claims using synthetic data and machine l
 ### Installation Steps
 
 1. Install Poetry (package manager):
-   
+
    **Windows (PowerShell):**
+
    ```powershell
    (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
    ```
 
    **macOS/Linux:**
+
    ```bash
    curl -sSL https://install.python-poetry.org | python3 -
    ```
 
 2. Clone this repository:
+
    ```bash
    git clone <repository-url>
    cd ris-ranking-poc
    ```
 
 3. Install project dependencies:
+
    ```bash
    poetry install
    ```
 
    This will install all required packages:
+
    - pandas 2.2.3
    - numpy 2.1.2
    - scikit-learn 1.5.2
@@ -45,14 +50,10 @@ A proof of concept for ranking medical claims using synthetic data and machine l
 4. Run the application in one of two ways:
 
    **Option 1:** Activate virtual environment first
+
    ```bash
    poetry shell
    python main.py
-   ```
-
-   **Option 2:** Run directly through Poetry
-   ```bash
-   poetry run start
    ```
 
 ## Features
@@ -75,10 +76,12 @@ A proof of concept for ranking medical claims using synthetic data and machine l
 ## Data Management
 
 The system automatically saves generated datasets to the `data/` directory using the format:
+
 - `{df_name_prefix}__synthesized_medical_claims.csv` for raw data
 - `{df_name_prefix}_random_forest_scored_medical_claims.csv` for scored data
 
 When generating data, the system will:
+
 1. Check for existing datasets
 2. Reuse matching datasets if they exist (same number of claims)
 3. Generate new data only when necessary
@@ -86,6 +89,7 @@ When generating data, the system will:
 ## Usage
 
 The system generates synthetic medical claims and uses a Random Forest model to predict priorities based on various features including:
+
 - Length of stay
 - Claim charges
 - Provider information
@@ -98,31 +102,37 @@ The system generates synthetic medical claims and uses a Random Forest model to 
 This project uses Poetry for dependency management. The dependencies are locked in poetry.lock to ensure consistent installations across environments. Key Poetry commands:
 
 - Add a new package:
+
   ```bash
   poetry add package_name
   ```
 
 - Remove a package:
+
   ```bash
   poetry remove package_name
   ```
 
 - Update all dependencies:
+
   ```bash
   poetry update
   ```
 
 - Show currently installed packages:
+
   ```bash
   poetry show
   ```
 
 - Export dependencies to requirements.txt:
+
   ```bash
   poetry export -f requirements.txt --output requirements.txt
   ```
 
 - Check dependency conflicts:
+
   ```bash
   poetry check
   ```
